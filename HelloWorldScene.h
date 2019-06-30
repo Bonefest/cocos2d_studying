@@ -28,29 +28,9 @@
 #include "cocos2d.h"
 #include <iostream>
 
-enum DIR {UP,RIGHT,DOWN,LEFT};
-struct SnakePart {
-    SnakePart(cocos2d::Sprite* ptr,bool _isHead):isHead(_isHead),sprite(ptr),next(nullptr) {}
-    SnakePart():isHead(true),sprite(nullptr),next(nullptr) {}
-
-    bool isHead;
-    cocos2d::Sprite* sprite;
-    SnakePart* next;
-
-};
 
 class HelloWorld : public cocos2d::Scene
 {
-private:
-    float timer;
-    cocos2d::Label* info;
-    DIR currentDir;
-
-    SnakePart* tail;
-    int size;
-
-    void addPart();
-    void moveSnake();
 public:
     virtual bool init();
 
@@ -58,9 +38,6 @@ public:
     // a selector callback
     void menuCloseCallback(cocos2d::Ref* pSender);
 
-    void snakeEvent(cocos2d::EventKeyboard::KeyCode keyCode,cocos2d::Event* event);
-    void changeLabelStatus();
-    void update(float fDelta);
     // implement the "static create()" method manually
     CREATE_FUNC(HelloWorld);
 };
