@@ -28,6 +28,67 @@
 
 USING_NS_CC;
 
+void DragSprite::update(float delta) {
+    if(!dragged) {
+        auto pos = getPosition();
+        pos += speed*delta*3;
+        setPosition(pos);
+    }
+}
+
+void DragSprite::onClick(cocos2d::Event* event) {
+    cocos2d::EventMouse* mevent = static_cast<cocos2d::EventMouse*>(event);
+    auto mousePos = cocos2d::Vec2(mevent->getCursorX(),mevent->getCursorY());
+    if(isClicked(mousePos)) {
+        dragged = true;
+        auto spritePos = this->getPosition();
+
+        offset = mousePos-spritePos;
+        speed = Vec2::ZERO;
+    }
+}
+
+void DragSprite::onDrop(cocos2d::Event* event) {
+    dragged = false;
+}
+
+void DragSprite::onMove(cocos2d::Event* event) {
+    if(dragged) {
+        cocos2d::EventMouse* mevent = static_cast<cocos2d::EventMouse*>(event);
+        auto mousePos = cocos2d::Vec2(mevent->getCursorX(),mevent->getCursorY());
+        speed = mousePos - lastCurPos;
+        lastCurPos = mousePos;
+
+        mousePos -= offset;
+        this->setPosition(mousePos);
+    }
+}
+
+bool DragSprite::isClicked(cocos2d::Vec2 mousePos) {
+    return this->getBoundingBox().containsPoint(mousePos);
+}
+
+DragSprite* DragSprite::createWithFile(const std::string& fileName) {
+    DragSprite* dragSprite = new DragSprite;
+    if(dragSprite->initWithFile(fileName)) {
+        dragSprite->autorelease();
+        dragSprite->dragged = false;
+        dragSprite->offset = cocos2d::Vec2::ZERO;
+        dragSprite->speed = cocos2d::Vec2::ZERO;
+        dragSprite->lastCurPos = cocos2d::Vec2::ZERO;
+
+        auto mouseListener = cocos2d::EventListenerMouse::create();
+        mouseListener->onMouseDown = CC_CALLBACK_1(DragSprite::onClick,dragSprite);
+        mouseListener->onMouseUp = CC_CALLBACK_1(DragSprite::onDrop,dragSprite);
+        mouseListener->onMouseMove = CC_CALLBACK_1(DragSprite::onMove,dragSprite);
+
+        dragSprite->_eventDispatcher->addEventListenerWithSceneGraphPriority(mouseListener,dragSprite);
+        return dragSprite;
+    }
+    CC_SAFE_DELETE(dragSprite);
+    return nullptr;
+}
+
 Scene* HelloWorld::createScene()
 {
     return HelloWorld::create();
@@ -40,10 +101,19 @@ bool HelloWorld::init()
         return false;
     }
 
+    sprite = DragSprite::createWithFile("CloseNormal.png");
+    sprite->setPosition(Vec2(200,200));
+
+    this->addChild(sprite);
+
+    this->scheduleUpdate();
+
     return true;
 }
 
-
+void HelloWorld::update(float delta) {
+    sprite->update(delta);
+}
 
 void HelloWorld::menuCloseCallback(Ref* pSender)
 {

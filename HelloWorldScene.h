@@ -29,6 +29,25 @@
 #include <iostream>
 
 
+class DragSprite : public cocos2d::Sprite {
+public:
+    static DragSprite* createWithFile(const std::string& fileName);
+
+    virtual void onClick(cocos2d::Event* event);
+    virtual void onMove(cocos2d::Event* event);
+    virtual void onDrop(cocos2d::Event* event);
+
+    void update(float delta);
+
+private:
+    cocos2d::Point lastCurPos;
+    cocos2d::Vec2 speed;
+    bool isClicked(cocos2d::Vec2 mousePos);
+
+    cocos2d::Point offset;
+    bool dragged;
+};
+
 class HelloWorld : public cocos2d::Scene
 {
 public:
@@ -38,8 +57,13 @@ public:
     // a selector callback
     void menuCloseCallback(cocos2d::Ref* pSender);
 
+    void update(float);
+
     // implement the "static create()" method manually
     CREATE_FUNC(HelloWorld);
+
+private:
+    DragSprite* sprite;
 };
 
 #endif // __HELLOWORLD_SCENE_H__

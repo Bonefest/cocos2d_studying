@@ -116,6 +116,17 @@ bool AppDelegate::applicationDidFinishLaunching() {
         director->setContentScaleFactor(MIN(smallResolutionSize.height/designResolutionSize.height, smallResolutionSize.width/designResolutionSize.width));
     }
 
+    //TEST
+    auto screenSize = cocos2d::Director::getInstance()->getOpenGLView()->getFrameSize();
+    if(screenSize.width < 400)
+        cocos2d::Director::getInstance()->setContentScaleFactor(5.0);
+    else
+        cocos2d::Director::getInstance()->setContentScaleFactor(1.0);
+
+
+
+    //
+
     register_all_packages();
 
     // create a scene. it's an autorelease object
