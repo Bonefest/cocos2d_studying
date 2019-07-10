@@ -27,25 +27,39 @@
 
 #include "cocos2d.h"
 #include <iostream>
+#include <list>
+#include <RakPeerInterface.h>
 
+const int TRACKS = 3;
+const double SPAWN_TIME = 1.5;
+const double BLOCK_SIZE = 64;
+const double LEVEL_WAIT = 2.0f;
+const double LEVEL_TIME = 10.0f;
+const int COUNTERS = 3;
 
-class DragSprite : public cocos2d::Sprite {
+class Block: public cocos2d::Node {
 public:
-    static DragSprite* createWithFile(const std::string& fileName);
+    static Block* createBlock(double speed,cocos2d::Color3B color = cocos2d::Color3B::WHITE);
 
-    virtual void onClick(cocos2d::Event* event);
-    virtual void onMove(cocos2d::Event* event);
-    virtual void onDrop(cocos2d::Event* event);
+    void updateBlock(float delta);
 
-    void update(float delta);
+    bool isOut() const;
+    bool isClicked(cocos2d::Point point) const;
 
+    double getSpeed() const { return speed; }
+
+    bool isFinished() const { return finished; }
+    bool isHiding() const { return hiding; }
+    void setHiding(bool t) { hiding = t; }
+
+    void onFadeFinish() { finished = true; }
 private:
-    cocos2d::Point lastCurPos;
-    cocos2d::Vec2 speed;
-    bool isClicked(cocos2d::Vec2 mousePos);
+    bool finished;
+    bool hiding;
+    double speed;
 
-    cocos2d::Point offset;
-    bool dragged;
+
+
 };
 
 class HelloWorld : public cocos2d::Scene
@@ -53,17 +67,58 @@ class HelloWorld : public cocos2d::Scene
 public:
     virtual bool init();
 
+    void draw(cocos2d::Renderer* render,const cocos2d::Mat4& mat,uint32_t t);
+
     static Scene* createScene();
     // a selector callback
     void menuCloseCallback(cocos2d::Ref* pSender);
 
-    void update(float);
+    void update(float delta);
+
+    void onClickBegin(cocos2d::Event* event);
+    void onTouchBegin(const std::vector<cocos2d::Touch*>& touches,cocos2d::Event* event);
 
     // implement the "static create()" method manually
     CREATE_FUNC(HelloWorld);
-
 private:
-    DragSprite* sprite;
+    RakNet::RakPeerInterface* peer;
+
+    cocos2d::Color4F clearColor;
+    cocos2d::Color4F speedColor;
+
+    int status;
+
+    double currentSpeed;
+
+    double currentSpawnTime;
+    double spawnTime;
+
+    double currentLevelTime;
+    double currentColorTime;
+
+    int level;
+    int score;
+
+    cocos2d::Label* scoreLabel;
+    cocos2d::Label* message;
+
+    std::list<Block*> activatedBlocks;
+
+    void showBigMessage(double time,const std::string& message,bool fade=true);
+
+    void spawnBlock();
+    void removeBlock(Block* blockPtr);
+    void levelChanger();
+    void colorChanger();
+    void gameOver();
+
+    void prepareToPlay();
+
+    bool changeColor;
+    bool spawnNew;
+    bool gameActive;
+
+    cocos2d::DrawNode* drawer;
 };
 
 #endif // __HELLOWORLD_SCENE_H__
