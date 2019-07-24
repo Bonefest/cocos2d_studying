@@ -13,114 +13,75 @@
 #include "MessageIdentifiers.h"
 #include "DS_List.h"
 #include "RakSleep.h"
+
+#include "SpriteReplica.h"
+#include "ui/UIButton.h"
+
 static const short PORT = 34000;
 static const char* IP = "127.0.0.1";
 
-class Player;
-class MenuScene;
+static const int SPEED_BALL = 150;
+static const int SPEED_PLAYER = 100;
 
-static bool isServer = false;
-
-class PlayerReplica : public RakNet::Replica3 {
-public:
-    PlayerReplica():position(cocos2d::Vec2::ZERO),health(0) {}
-
-    void setPosition(const cocos2d::Vec2& pos) { position = pos; }
-    cocos2d::Vec2 getPosition() { return position; }
-
-    void WriteAllocationID(RakNet::Connection_RM3* connection,RakNet::BitStream* allocationIdBitstream) const {
-        allocationIdBitstream->Write("Player");
-    }
-
-    void DeallocReplica(RakNet::Connection_RM3* connection) {
-        delete this;
-    }
-
-    void SerializeConstruction(RakNet::BitStream* constructionBitstream,RakNet::Connection_RM3* connection) {
-        variableDeltaSerializer.AddRemoteSystemVariableHistory(connection->GetRakNetGUID());
-    }
-
-    bool DeserializeConstruction(RakNet::BitStream* constructionBitstream,RakNet::Connection_RM3* connection) {
-        return true;
-    }
-
-    void SerializeDestruction(RakNet::BitStream* destructionBitstream,RakNet::Connection_RM3* connection) {
-        variableDeltaSerializer.RemoveRemoteSystemVariableHistory(connection->GetRakNetGUID());
-    }
-
-    bool DeserializeDestruction(RakNet::BitStream* destructionBitstream,RakNet::Connection_RM3* connection) {
-        return true;
-    }
-
-    void OnUserReplicaPreSerializeTick() {
-        variableDeltaSerializer.OnPreSerializeTick();
-    }
-
-    RakNet::RM3SerializationResult Serialize(RakNet::SerializeParameters* parameters) {
-        RakNet::VariableDeltaSerializer::SerializationContext context;
-        parameters->pro[0].reliability = UNRELIABLE;
-        parameters->pro[0].sendReceipt = replicaManager->GetRakPeerInterface()->IncrementNextSendReceipt();
-        parameters->messageTimestamp = RakNet::GetTime();
-
-        variableDeltaSerializer.BeginIdenticalSerialize(&context,(parameters->whenLastSerialized==0),&parameters->outputBitstream[0]);
-        variableDeltaSerializer.SerializeVariable(&context,position.x);
-        variableDeltaSerializer.SerializeVariable(&context,position.y);
-        variableDeltaSerializer.EndSerialize(&context);
-
-        return RakNet::RM3SR_BROADCAST_IDENTICALLY;
-    }
-
-    void Deserialize(RakNet::DeserializeParameters* parameters) {
-        RakNet::VariableDeltaSerializer::DeserializationContext context;
-
-        variableDeltaSerializer.BeginDeserialize(&context,&parameters->serializationBitstream[0]);
-        variableDeltaSerializer.DeserializeVariable(&context,position.x);
-        variableDeltaSerializer.DeserializeVariable(&context,position.y);
-        variableDeltaSerializer.EndDeserialize(&context);
-    }
-
-    void OnPoppedConnection(RakNet::Connection_RM3* connection) {
-        variableDeltaSerializer.RemoveRemoteSystemVariableHistory(connection->GetRakNetGUID());
-    }
-
-    RakNet::RM3ConstructionState QueryConstruction(RakNet::Connection_RM3* connection,RakNet::ReplicaManager3* rmanager) {
-        return QueryConstruction_ClientConstruction(connection,isServer);
-    }
-
-    bool QueryRemoteConstruction(RakNet::Connection_RM3* connection) {
-        return QueryRemoteConstruction_ClientConstruction(connection,isServer);
-    }
-
-    RakNet::RM3QuerySerializationResult QuerySerialization(RakNet::Connection_RM3* connection) {
-        return QuerySerialization_ClientSerializable(connection,isServer);
-    }
-
-    RakNet::RM3ActionOnPopConnection QueryActionOnPopConnection(RakNet::Connection_RM3* connection) const {
-        return QueryActionOnPopConnection_Client(connection);
-    }
-
-private:
-    cocos2d::Vec2 position;
-    int health;
-
-    RakNet::VariableDeltaSerializer variableDeltaSerializer;
+enum GameMessages {
+    ID_READY_START_MESSAGE = ID_USER_PACKET_ENUM + 1,
+    ID_NEW_SCORE_MESSAGE
 };
 
-
-class Player : public cocos2d::Sprite {
+#include <algorithm>
+class KeyManager {
 public:
-    static Player* createPlayer(PlayerReplica* playerReplica);
-    void setPosition(const cocos2d::Vec2& position) {
-        cocos2d::Sprite::setPosition(position);
-        replica.GetCompositeOwner()->setPosition(position);
-    }
+    void onKeyPressed(cocos2d::EventKeyboard::KeyCode key,cocos2d::Event* event);
+    void onKeyReleased(cocos2d::EventKeyboard::KeyCode key,cocos2d::Event* event);
 
-    void updateState(float delta);
+    bool isPressed(cocos2d::EventKeyboard::KeyCode key) const { return std::find(pressedKeys.begin(),pressedKeys.end(),key)!=pressedKeys.end(); }
+
 private:
-    RakNet::Replica3Composite<PlayerReplica> replica;
-
+    std::list<cocos2d::EventKeyboard::KeyCode> pressedKeys;
 };
 
+class Command {
+public:
+    virtual void execute()=0;
+};
+
+class NullCommand: public Command {
+public:
+    virtual void execute() { }
+};
+
+class MoveCommand: public Command {
+public:
+    MoveCommand(cocos2d::Sprite* sprite,const cocos2d::Vec2& position):target(sprite),newPosition(position) { }
+
+    void execute() {
+        target->setPosition(newPosition);
+    }
+private:
+    cocos2d::Sprite* target;
+    cocos2d::Vec2 newPosition;
+};
+
+class SpriteSerializable: public cocos2d::Sprite {
+public:
+    static SpriteSerializable* createWithFile(const std::string& file) {
+        SpriteSerializable* result = new SpriteSerializable;
+        if(result->initWithFile(file)) {
+            result->autorelease();
+            return result;
+        }
+
+        CC_SAFE_DELETE(result);
+        return nullptr;
+    }
+    void setReplica(SpriteReplica* spriteReplica) {
+        replica.SetCompositeOwner(spriteReplica);
+    }
+
+    RakNet::Replica3* getReplica() { return replica.GetCompositeOwner(); }
+private:
+    RakNet::Replica3Composite<SpriteReplica> replica;
+};
 
 class ReplicaManager;
 
@@ -132,24 +93,62 @@ public:
     CREATE_FUNC(MenuScene);
     void menuCloseCallback(cocos2d::Ref* psender);
 
-    void onConnectNewUser(PlayerReplica* playerReplica);
+    RakNet::Replica3* replicaFactory(const RakNet::RakString& str);
 
     void update(float delta);
 
     void onKeyPressed(cocos2d::EventKeyboard::KeyCode key,cocos2d::Event* event);
-private:
-    bool typeChoosen;
+    Command* handleInput(float delta);
 
-    RakNet::NetworkIDManager nmanager;
+    //void onConnectedAsClient();
+private:
+    RakNet::NetworkIDManager  nmanager;
     RakNet::RakPeerInterface* peer;
+    RakNet::Packet* packet;
     ReplicaManager* rmanager;
 
-    std::vector<Player*> connectedPlayers;
-    Player* myPlayer;
+    cocos2d::ui::Button* serverButton;
+    cocos2d::ui::Button* clientButton;
+    cocos2d::ui::Button* readyButton;
 
-    RakNet::Packet* packet;
+    cocos2d::Label* serverScoreLabel;
+    uint64_t serverScore;
+
+    cocos2d::Label* clientScoreLabel;
+    uint64_t clientScore;
+
+    SpriteSerializable* player;
+    SpriteSerializable* ball;
+
+    std::vector<cocos2d::Node*> physicsObjects;
+
+    RakNet::RakNetGUID remoteGUID;
+
+    KeyManager keyManager;
+
+    cocos2d::Vec2 ballDirection;
 
     bool connected;
+    bool ready;
+
+    void onClientChoosen(cocos2d::Ref* sender,cocos2d::ui::Widget::TouchEventType type);
+    void onServerChoosen(cocos2d::Ref* sender,cocos2d::ui::Widget::TouchEventType type);
+    void onReadyChoosen (cocos2d::Ref* sender,cocos2d::ui::Widget::TouchEventType type);
+
+    void initServerPart();
+    void initScenePart();
+    void initServerBall();
+    void initGame();
+    void initPlayer();
+
+    void checkBallOut();
+
+    void updateScoreStatus();
+
+    void startServer();
+
+    void updateBall(float delta);
+
 };
 
 
@@ -160,16 +159,8 @@ public:
     RakNet::Replica3* AllocReplica(RakNet::BitStream* bitstream,RakNet::ReplicaManager3* rmanager) {
         RakNet::RakString type;
         bitstream->Read(type);
-        std::cout << "new user!\n";
-        if(type == "Player") {
 
-        std::cout << "it's a player!\n";
-            PlayerReplica* playerReplica = new PlayerReplica;
-            scene->onConnectNewUser(playerReplica);
-            return playerReplica;
-        }
-
-        return nullptr;
+        return scene->replicaFactory(type);
     }
 private:
     MenuScene* scene;
