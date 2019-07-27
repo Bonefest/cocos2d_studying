@@ -7,6 +7,7 @@
 class GameConfigManager {
 public:
     static GameConfigManager* getInstance() {
+
         if(instance == nullptr)
             instance = new GameConfigManager;
         return instance;
@@ -18,7 +19,7 @@ public:
     }
 
     void loadConfig(const std::string& path);
-    const std::string& getSpritePath(const std::string& key);
+    std::string getSpritePath(const std::string& key);
 
 private:
     GameConfigManager() { }
@@ -30,8 +31,6 @@ private:
     std::map<std::string,std::string> spritesTableNamePath;
 
 };
-
-GameConfigManager* GameConfigManager::instance=nullptr;
 
 
 #endif // GAMECONFIGMANAGER_H_INCLUDED

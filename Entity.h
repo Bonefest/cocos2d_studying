@@ -30,5 +30,10 @@ private:
 };
 
 
+class Wall: public cocos2d::Sprite {
+public:
+    static Wall* createWall(const std::string& path);
+
+};
 
 #endif // ENTITY_H_INCLUDED

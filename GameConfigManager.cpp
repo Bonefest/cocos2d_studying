@@ -1,5 +1,10 @@
 #include "GameConfigManager.h"
+GameConfigManager* GameConfigManager::instance=nullptr;
 
-const std::string& GameConfigManager::getSpritePath(const std::string& key) {
+
+std::string GameConfigManager::getSpritePath(const std::string& key) {
     if(key == "Player") return "brick.png";
+    if(key == "Wall") return "brick.png";
+
+    return "";
 }

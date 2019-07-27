@@ -6,18 +6,25 @@
 #include "Entity.h"
 #include "Command.h"
 
+class Command;
+
+#include <list>
+
 const int NUM_PLAYERS = 4;
-const float PLAYER_SPEED = 20;
+const float PLAYER_SPEED = 200;
 
 const int MAP_WIDTH = 13;
 const int MAP_HEIGHT = 15;
 
+const int BLOCK_SIZE = 32;
+
 class MenuScene : cocos2d::Scene {
 public:
     virtual bool init();
-    static Scene* createScene();
 
     CREATE_FUNC(MenuScene);
+
+    static Scene* createScene();
     void menuCloseCallback(cocos2d::Ref* psender);
 
     void update(float delta);
@@ -25,16 +32,21 @@ public:
     void onKeyPressed(cocos2d::EventKeyboard::KeyCode key,cocos2d::Event* event);
     void onKeyReleased(cocos2d::EventKeyboard::KeyCode key,cocos2d::Event* event);
 
+    std::vector<Command*> handleInput(float delta);
+
+    bool isCollide(cocos2d::Node* objectA,cocos2d::Node* objectB);
+
+    bool isPositionAvailable(const cocos2d::Rect&);
+private:
     void initPlayers();
     void initMap();
 
-    Command* handleInput(float delta);
-
     void calculateCollisions();
+    Wall* createStandardWallAndAdd();
 
-private:
     KeyManager keyManager;
     Player* players[NUM_PLAYERS];
+    std::list<Wall*> walls;
 
 };
 

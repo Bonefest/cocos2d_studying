@@ -3,6 +3,9 @@
 
 #include "cocos2d.h"
 #include "Entity.h"
+#include "MenuScene.h"
+
+class MenuScene;
 
 class Command {
 public:
@@ -14,15 +17,20 @@ public:
     void execute() { }
 };
 
-class NewSpeedCommand: public Command {
+class MoveByCommand: public Command {
 public:
-    NewSpeedCommand(Player* unit,cocos2d::Vec2 newSpeed);
-
+    //AddSpeedCommand(Player* unit,CollisionManager* manager,cocos2d::Vec2 newPos);
+    MoveByCommand(cocos2d::Sprite* unit,MenuScene* scene,const cocos2d::Vec2 byPosition);
     void execute();
 
 private:
-    Player* _unit;
-    cocos2d::Vec2 _speed;
+    cocos2d::Sprite* _unit;
+    MenuScene* _scene;
+    cocos2d::Vec2 newPos;
+};
+
+class PlaceBomb: public Command {
+public:
 };
 
 
