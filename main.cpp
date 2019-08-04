@@ -66,73 +66,41 @@ int main() {
 
     Shader shader("vertex.glsl","fragment.glsl");
 
+    float r1=0.2f,r2=0.5f;
+    int N = 15;
 
-    float verticies[] = {
+    float verticies[3*N];
 
+    for(int i = 0;i<N;++i) {
+        verticies[i*3] = r1*std::cos(3.1415926*2*i/N);
+        verticies[i*3 + 1] = r2*std::sin(3.1415926*2*i/N);
+        verticies[i*3 + 2] = 0;
+    }
 
-    };
+    unsigned int VBO,VAO;
 
-    unsigned int indecies[] = {
-        0,1,2,
-        1,2,3
-    };
-
-    unsigned int VBO,VAO,EBO;
-
-    glGenBuffers(1,&VBO);
-    glGenVertexArrays(1,&VAO);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,sizeof(indecies),indecies,GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER,VBO);
-    glBindVertexArray(VAO);
-    glBufferData(GL_ARRAY_BUFFER,sizeof(verticies),verticies,GL_STATIC_DRAW);
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(float)*8,(void*)nullptr);
+//    glGenBuffers(1,&VBO);
+//    glGenVertexArrays(1,&VAO);
+//    glBindVertexArray(VAO);
+//    glBindBuffer(GL_ARRAY_BUFFER,VBO);
+//    glBufferData(GL_ARRAY_BUFFER,sizeof(verticies),verticies,GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(float)*3,(void*)nullptr);
     glEnableVertexAttribArray(0);
+//
 
+    float arrowVert[6] ={
+        0.0f,0.0f,0.0f,
+        0.5f,0.5f,0.0f
+    };
 
-    //TEXTURES
-    int width,height,comp;
-    unsigned int textures[2];
-    glGenTextures(2,textures);
+    unsigned int VBO_ARROW,VAO_ARROW;
+    glGenBuffers(1,&VBO_ARROW);
+    glGenVertexArrays(1,&VAO_ARROW);
 
-    //ONE
-    unsigned char* data = stbi_load("container.jpg",&width,&height,&comp,0);
+    glBindVertexArray(VAO_ARROW);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO_ARROW);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D,textures[0]);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-
-
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,width,height,0,GL_RGB,GL_UNSIGNED_BYTE,data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(data);
-
-
-    //TWO
-    stbi_set_flip_vertically_on_load(true);
-    data = stbi_load("awesomeface.png",&width,&height,&comp,0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D,textures[1]);
-
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    stbi_image_free(data);
-
-
-
-    glVertexAttribPointer(1,3,GL_FLOAT,GL_FALSE,sizeof(float)*8,(void*)(3*sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2,2,GL_FLOAT,GL_FALSE,sizeof(float)*8,(void*)(sizeof(float)*6));
-    glEnableVertexAttribArray(2);
-
+    //glBufferData(GL_ARRAY_BUFFER,sizeof(arrowVert),arrowVert,GL_DYNAMIC_DRAW);
     float time;
 
     while(!glfwWindowShouldClose(window)) {
@@ -142,17 +110,19 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         time = glfwGetTime();
-        int offsetUniformLoc = glGetUniformLocation(shader.ID,"offset");
-        int opacityUniformLoc = glGetUniformLocation(shader.ID,"opacity");
-        glUniform1i(glGetUniformLocation(shader.ID,"texture1"),0);
-        glUniform1i(glGetUniformLocation(shader.ID,"texture2"),1);
-        glUniform1f(opacityUniformLoc,std::cos(time));
 
         shader.use();
-        glUniform2f(offsetUniformLoc,std::sin(time),std::cos(time));
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,EBO);
-        glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,0);
-        //glDrawArrays(GL_TRIANGLES,0,3);
+
+        //glBindVertexArray(VAO);
+//        //glDrawArrays(GL_LINE_LOOP,0,N);
+//
+//        arrowVert[3] = r1*std::cos(time);
+//        arrowVert[4] = r2*std::sin(time);
+
+        glBindVertexArray(VAO_ARROW);
+
+        //glBufferData(GL_ARRAY_BUFFER,sizeof(arrowVert),arrowVert,GL_STATIC_DRAW);
+        glDrawArrays(GL_LINE_LOOP,0,2);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

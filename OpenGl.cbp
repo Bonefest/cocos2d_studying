@@ -35,6 +35,7 @@
 			<Add directory="/home/miofix/Programming/GLAD" />
 		</Compiler>
 		<Linker>
+			<Add option="-lglfw3 -lGL -lX11 -lpthread -lXrandr -lXi -ldl" />
 			<Add library="GL" />
 			<Add library="X11" />
 			<Add library="/home/miofix/Programming/GLEW/build/src/libglfw3.a" />
