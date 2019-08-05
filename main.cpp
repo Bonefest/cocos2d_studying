@@ -1,4 +1,4 @@
-#include <glad/glad.h>
+#include <glad/glad.h>ſ
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <unistd.h>
@@ -13,8 +13,6 @@
 float offset = 1.0f;
 float mod = 2.0f;
 
-bool gener=true;
-
 struct vec3 {
     float x;
     float y;
@@ -22,6 +20,7 @@ struct vec3 {
     vec3(float _x=0,float _y=0,float _z=0):x(_x),y(_y),z(_z) { }
 };
 
+vec3 getPoint(double c,int N);
 
 void framebuffer_size_callback(GLFWwindow* window,int width,int height) {
     std::cout << width << " " << height << std::endl;
@@ -39,12 +38,12 @@ void processInput(GLFWwindow* window) {
         glPolygonMode(GL_FRONT_AND_BACK,GL_POINT);
     } else if(glfwGetKey(window,GLFW_KEY_UP) == GLFW_PRESS) {
         mod += 0.01f;
-        gener=true;
     } else if(glfwGetKey(window,GLFW_KEY_DOWN) == GLFW_PRESS) {
         mod -= 0.01f;
-        gener=true;
     }
 }
+
+void generatePoints(float points[],int size);
 
 void generator(int count,std::vector<vec3>& verts,vec3 A,vec3 B,vec3 C,int n);
 
@@ -75,23 +74,25 @@ int main() {
     }
 
     glViewport(0,0,640,480);
-
     glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
-
     Shader shader("vertex.glsl","fragment.glsl");
 
-    std::vector<vec3> vverticies;
+    int N = 1000;
+    int points = 40000;
 
-    generator(12,vverticies,vec3(-1.0f,-1.0f,0.0f),vec3(0.0f,1.0f,0.0f),vec3(1.0f,-1.0f,0.0f),-1);
-    int N = vverticies.size();
+    float verticies[points*3]{};
+    vec3 point;
+    float c = -0.13;
+    for(int i = 0;i<points;++i) {
+        point = getPoint(c,N);
+        if(point.x == 0 && point.y == 0) break;
 
-    float verticies[vverticies.size()*3];
-    for(unsigned int i = 0;i<vverticies.size();++i) {
-        verticies[i*3] = vverticies[i].x;
-        verticies[i*3 + 1] = vverticies[i].y;
-        verticies[i*3 + 2] = vverticies[i].z;
+        verticies[i*3] = point.x*2;
+        verticies[i*3 + 1] = point.y*2;
+
+
+        c += 0.0001;
     }
-
 
     unsigned int VBO,VAO;
 
@@ -103,7 +104,8 @@ int main() {
     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(float)*3,(void*)nullptr);
     glEnableVertexAttribArray(0);
 
-    float time;
+    vec3 test = getPoint(0.251,1000);
+    std::cout << test.x << " " << test.y << std::endl;
 
     while(!glfwWindowShouldClose(window)) {
         processInput(window);
@@ -111,26 +113,10 @@ int main() {
         glClearColor(0.0f,0.0f,0.0f,1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        time = glfwGetTime();
-
         shader.use();
 
-        if(gener) {
-            vverticies.clear();
-            generator(12,vverticies,vec3(-1.0f,-1.0f,0.0f),vec3(0.0f,1.0f,0.0f),vec3(1.0f,-1.0f,0.0f),-1);
-
-            for(unsigned int i = 0;i<vverticies.size();++i) {
-                verticies[i*3] = vverticies[i].x;
-                verticies[i*3 + 1] = vverticies[i].y;
-                verticies[i*3 + 2] = vverticies[i].z;
-            }
-
-            glBufferData(GL_ARRAY_BUFFER,sizeof(verticies),verticies,GL_STATIC_DRAW);
-            gener=false;
-        }
-
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES,0,N);
+        glDrawArrays(GL_TRIANGLES,0,points);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -144,19 +130,20 @@ int main() {
 }
 
 
-void generator(int count,std::vector<vec3>& verts,vec3 A,vec3 B,vec3 C,int n) {
-    if(count > 0) {
-        if(n!=0) verts.push_back(A);
-        if(n!=1) verts.push_back(B);
-        if(n!=2) verts.push_back(C);
-
-
-        vec3 midAB = vec3((A.x+B.x)/mod,(A.y+B.y)/mod,(A.z+B.z)/mod);
-        vec3 midAC = vec3((A.x+C.x)/mod,(A.y+C.y)/mod,(A.z+C.z)/mod);
-        vec3 midBC = vec3((B.x+C.x)/mod,(B.y+C.y)/mod,(B.z+C.z)/mod);
-
-        generator(count-1,verts,A,midAB,midAC,0);
-        generator(count-1,verts,midAC,midBC,C,2);
-        generator(count-1,verts,midAB,B,midBC,1);
+vec3 getPoint(double c,int N) {
+    vec3 result;
+    double z = 0;
+    for(int i = 0;i<N-1;++i) {
+        z = z*z + c;
+        if(z > 2) return result;
     }
+
+    if(z*z + c <= 2) {
+        result.x = z*z;
+        result.y = c;
+    }
+
+    std::cout << result.x << " " << result.y << std::endl;
+    return result;
 }
+
