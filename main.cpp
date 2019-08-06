@@ -27,6 +27,9 @@ void framebuffer_size_callback(GLFWwindow* window,int width,int height) {
     glViewport(0,0,width,height);
 }
 
+void generateCircle(float radius,int segments,std::vector<vec3>& output);
+float toRad(float deg);
+
 void processInput(GLFWwindow* window) {
     if(glfwGetKey(window,GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window,true);
@@ -43,9 +46,6 @@ void processInput(GLFWwindow* window) {
     }
 }
 
-void generatePoints(float points[],int size);
-
-void generator(int count,std::vector<vec3>& verts,vec3 A,vec3 B,vec3 C,int n);
 
 int main() {
 
@@ -77,22 +77,24 @@ int main() {
     glfwSetFramebufferSizeCallback(window,framebuffer_size_callback);
     Shader shader("vertex.glsl","fragment.glsl");
 
-    int N = 1000;
-    int points = 40000;
-
-    float verticies[points*3]{};
-    vec3 point;
-    float c = -0.13;
-    for(int i = 0;i<points;++i) {
-        point = getPoint(c,N);
-        if(point.x == 0 && point.y == 0) break;
-
-        verticies[i*3] = point.x*2;
-        verticies[i*3 + 1] = point.y*2;
-
-
-        c += 0.0001;
+    float segments = 3;
+    std::vector<vec3> vv;
+    float radius = 0.9f;
+    while(radius > 0.0f) {
+        generateCircle(radius,segments,vv);
+        radius -= 0.05f;
     }
+
+    size_t vertCount = vv.size();
+    float verticies[vertCount*3]{};
+
+    for(int i = 0;i<vertCount;++i) {
+        verticies[i*3] = vv[i].x;
+        verticies[i*3 + 1] = vv[i].y;
+    }
+
+    vec3 point;
+
 
     unsigned int VBO,VAO;
 
@@ -100,12 +102,9 @@ int main() {
     glGenVertexArrays(1,&VAO);
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER,VBO);
-    glBufferData(GL_ARRAY_BUFFER,sizeof(verticies),verticies,GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(float)*vertCount*3,verticies,GL_STATIC_DRAW);
     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(float)*3,(void*)nullptr);
     glEnableVertexAttribArray(0);
-
-    vec3 test = getPoint(0.251,1000);
-    std::cout << test.x << " " << test.y << std::endl;
 
     while(!glfwWindowShouldClose(window)) {
         processInput(window);
@@ -116,7 +115,7 @@ int main() {
         shader.use();
 
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES,0,points);
+        glDrawArrays(GL_LINE_STRIP,0,vertCount);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -130,20 +129,16 @@ int main() {
 }
 
 
-vec3 getPoint(double c,int N) {
-    vec3 result;
-    double z = 0;
-    for(int i = 0;i<N-1;++i) {
-        z = z*z + c;
-        if(z > 2) return result;
-    }
+void generateCircle(float radius,int segments,std::vector<vec3>& output) {
+    float angleSize = 360.0f/segments;
+    vec3 vert;
+    for(int i = 0;i< segments;i++) {
+        vert.x = radius*std::cos(toRad(90 + i*angleSize));
+        vert.y = radius*std::sin(toRad(90 + i*angleSize));
 
-    if(z*z + c <= 2) {
-        result.x = z*z;
-        result.y = c;
+        output.push_back(vert);
     }
-
-    std::cout << result.x << " " << result.y << std::endl;
-    return result;
 }
-
+float toRad(float deg) {
+    return (deg*3.1415926)/180.0f;
+}

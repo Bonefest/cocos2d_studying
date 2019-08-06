@@ -3,6 +3,6 @@ layout (location = 0) in vec3 aPos;
 
 out vec3 pos;
 void main() {
-	gl_Position = vec4(aPos.x,aPos.y,aPos.z,1.0f);
+	gl_Position = vec4(aPos.x,aPos.y-0.1f,aPos.z,1.0f);
     pos = aPos;
 }
