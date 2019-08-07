@@ -1,4 +1,7 @@
 #include "Command.h"
+#include "GameConfigManager.h"
+#include "MenuScene.h"
+
 MoveByCommand::MoveByCommand(cocos2d::Sprite* unit,
                                  MenuScene* scene,
                                  const cocos2d::Vec2 newPosition)
@@ -12,3 +15,13 @@ void MoveByCommand::execute() {
     if(_scene->isPositionAvailable(unitRect))
         _unit->setPosition(newTotalPos);
 }
+
+void PlaceBomb::execute() {
+    Bomb* bomb = Bomb::createBomb(GameConfigManager::getInstance()->getSpritePath("Bomb"),_range);
+    bomb->setPosition(_position);
+    bomb->setContentSize(cocos2d::Size(BLOCK_SIZE,BLOCK_SIZE));
+    bomb->setAnchorPoint(cocos2d::Vec2(0,0));
+    _scene->addBomb(bomb);
+    _scene->addChild(bomb);
+}
+

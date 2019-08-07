@@ -31,6 +31,32 @@ private:
 
 class PlaceBomb: public Command {
 public:
+   PlaceBomb(const cocos2d::Vec2& position,MenuScene* scene,int range):_position(position),_scene(scene),_range(range) { }
+
+   void execute();
+
+private:
+    cocos2d::Vec2 _position;
+    MenuScene* _scene;
+    int _range;
+
+};
+
+enum Direction {
+    LEFT,UP,RIGHT,DOWN
+};
+
+class ShootRay: public Command {
+public:
+    ShootRay(const cocos2d::Vec2& startPosition,Direction direction,int range,MenuScene* scene);
+
+    void execute();
+
+private:
+    cocos2d::Vec2 _startPosition;
+    Direction _direction;
+    int _range;
+    MenuScene* _scene;
 };
 
 
