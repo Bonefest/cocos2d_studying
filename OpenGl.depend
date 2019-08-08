@@ -1,14 +1,7 @@
 # depslib dependency file v1.0
-1564908449 source:/home/miofix/Programming/Codeblocks/Projects/OpenGl/main.cpp
-	<glad/glad.h>
-	<GLFW/glfw3.h>
-	<iostream>
-	<unistd.h>
-	<ctime>
-	<cmath>
+1565256245 source:/home/miofix/Programming/Codeblocks/Projects/OpenGl/main.cpp
+	"Program.h"
 	"stbimage.h"
-	"Shader.h"
-	<vector>
 
 1555368030 /home/miofix/Programming/GLEW/include/GLFW/glfw3.h
 	<stddef.h>
@@ -50,7 +43,7 @@
 	<inttypes.h>
 	<stdint.h>
 
-1564234564 /home/miofix/Programming/Codeblocks/Projects/OpenGl/Shader.h
+1565253359 /home/miofix/Programming/Codeblocks/Projects/OpenGl/Shader.h
 	<glad/glad.h>
 	<string>
 	<fstream>
@@ -78,4 +71,17 @@
 	<emmintrin.h>
 	<intrin.h>
 	<arm_neon.h>
+
+1565259498 /home/miofix/Programming/Codeblocks/Projects/OpenGl/Program.h
+	<glad/glad.h>
+	<GLFW/glfw3.h>
+	<iostream>
+	<unistd.h>
+	<ctime>
+	<cmath>
+	"Shader.h"
+
+1565256238 source:/home/miofix/Programming/Codeblocks/Projects/OpenGl/Program.cpp
+	"Program.h"
+	<cstring>
 

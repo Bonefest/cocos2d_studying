@@ -4,7 +4,8 @@ in vec3 pos;
 
 void main()
 {
-
-    FragColor = vec4(1.0f-pos.x,1.0f-pos.y,1.0f-pos.z,1.0f);
+    //float com = sqrt(pos.x * pos.x + pos.y*pos.y + pos.z*pos.z);
+    float com = 1.0f;
+    FragColor = vec4(com,com,com,1.0f);
 }
 

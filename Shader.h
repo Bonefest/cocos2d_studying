@@ -10,7 +10,13 @@ class Shader {
 public:
     unsigned int ID;
 
+    Shader() { }
+
     Shader(const GLchar* vertexPath,const GLchar* fragmentPath) {
+        loadShader(vertexPath,fragmentPath);
+    }
+
+    void loadShader(const GLchar* vertexPath, const GLchar* fragmentPath) {
         std::string strShader;
         const char* chShader;
 
