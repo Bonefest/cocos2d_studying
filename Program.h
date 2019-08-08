@@ -29,11 +29,20 @@ struct vec3 {
     float x;
     float y;
     float z;
+    vec3 operator+(const vec3& rop) {
+        return vec3(x+rop.x,y+rop.y,z+rop.z);
+    }
+
+    vec3 operator/(float value) {
+        return vec3(x/value,y/value,z/value);
+    }
+
     vec3(float _x=0,float _y=0,float _z=0):x(_x),y(_y),z(_z) { }
 };
 
 typedef vec2 Size;
 
+const float toRad = 3.1415926/180.0f;
 
 class Program {
 public:
@@ -52,6 +61,8 @@ private:
     void initGLFW();
     void initGL();
     void updateWindow();
+    void setAngleX(float* mat,float degree);
+    void setAngleY(float* mat,float degree);
 
     Shader shader;
     unsigned VBO,VAO;
@@ -61,12 +72,18 @@ private:
     Size _screenSize;
     const char* _programName;
 
+    float mat[9];
+    float mat2[9];
+
+    float angleX;
+    float angleY;
+
     std::list<vec2> tvert;
     size_t vertSize;
     float* verticies;
 };
 
-void generateTriangles(int depth,std::list<vec2>& verticies,vec2 A,vec2 B,vec2 C);
+void generateTriangles(int depth,std::list<vec3>& verticies,vec3* previous);
 
 
 #endif // PROGRAM_H_INCLUDED

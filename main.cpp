@@ -5,7 +5,7 @@
 
 int main() {
     Program program;
-    program.init(Size(640,480),"SomeA",false);
+    program.init(Size(1920,1080),"SomeA",true);
     program.start();
     return 0;
 }
