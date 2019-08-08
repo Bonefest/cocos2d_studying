@@ -7,13 +7,21 @@
 #include <unistd.h>
 #include <ctime>
 #include <cmath>
-
+#include <list>
 
 #include "Shader.h"
 
 struct vec2 {
     float x;
     float y;
+    vec2 operator+(const vec2& rop) {
+        return vec2(x+rop.x,y+rop.y);
+    }
+
+    vec2 operator/(float value) {
+        return vec2(x/value,y/value);
+    }
+
     vec2(float _x=0,float _y=0):x(_x),y(_y) { }
 };
 
@@ -53,9 +61,12 @@ private:
     Size _screenSize;
     const char* _programName;
 
-
-    float verticies[9*12];
+    std::list<vec2> tvert;
+    size_t vertSize;
+    float* verticies;
 };
+
+void generateTriangles(int depth,std::list<vec2>& verticies,vec2 A,vec2 B,vec2 C);
 
 
 #endif // PROGRAM_H_INCLUDED

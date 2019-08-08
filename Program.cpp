@@ -2,11 +2,27 @@
 #include <cstring>
 
 
-void frameBufCallback(GLFWwindow* window,int width,int height) {
-    glViewport(0,0,width,height);
+void generateTriangles(int depth,std::list<vec2>& verticies,vec2 A,vec2 B,vec2 C) {
+    if(depth > 0) {
+        vec2 midAB = (A+B)/2;
+        vec2 midBC = (B+C)/2;
+        vec2 midAC = (A+C)/2;
+
+        generateTriangles(depth-1,verticies,A,midAB,midAC);
+        generateTriangles(depth-1,verticies,midAB,B,midBC);
+        generateTriangles(depth-1,verticies,midAC,midBC,C);
+
+    } else {
+        verticies.push_back(A);
+        verticies.push_back(B);
+        verticies.push_back(C);
+    }
+
 }
 
 Program::~Program() {
+    delete [] verticies;
+
     glDeleteVertexArrays(1,&VAO);
     glDeleteBuffers(1,&VBO);
 
@@ -28,65 +44,24 @@ void Program::init(Size screenSize,const char* programName,bool fullScreen) {
         std::cout << "Failed to initialize GLAD " << std::endl;
     }
     glViewport(0,0,screenSize.x,screenSize.y);
-    glfwSetFramebufferSizeCallback(mainWindow,frameBufCallback);
 
     shader.loadShader("vertex.glsl","fragment.glsl");
 
-    float tverticies[] = {
-        -0.5f, 0.0f, 0.0f,
-        -0.5f, 0.5f, 0.0f,
-         0.5f, 0.5f, 0.0f, //FRONT
 
-        -0.5f, 0.0f, 0.0f,
-         0.5f, 0.5f, 0.0f,
-         0.5f, 0.0f, 0.0f,
+    std::list<vec2> tvert;
+    generateTriangles(4,tvert,vec2(-1.0f,-1.0f),vec2(-1.0f,1.0f),vec2(1.0f,-1.0f));
 
-         0.5f, 0.5f, 0.0f,
-         0.5f, 0.5f, 0.5f,
-         0.5f, 0.0f, 0.0f, //RIGHT
-
-         0.5f, 0.5f, 0.5f,
-         0.5f, 0.0f, 0.5f,
-         0.5f, 0.0f, 0.0f,
-
-        -0.5f, 0.0f, 0.5f,
-        -0.5f, 0.5f, 0.5f,
-         0.5f, 0.5f, 0.5f, //BACK
-
-        -0.5f, 0.0f, 0.5f,
-         0.5f, 0.5f, 0.5f,
-         0.5f, 0.0f, 0.5f,
-
-        -0.5f, 0.5f, 0.0f,
-        -0.5f, 0.5f, 0.5f,
-        -0.5f, 0.0f, 0.0f, //LEFT
-
-        -0.5f, 0.5f, 0.5f,
-        -0.5f, 0.0f, 0.5f,
-        -0.5f, 0.0f, 0.0f,
-
-        -0.5f, 0.5f, 0.0f,
-         0.5f, 0.5f, 0.0f,
-        -0.5f, 0.5f, 0.5f,
-
-         0.5f, 0.5f, 0.0f,
-         0.5f, 0.5f, 0.5f,
-        -0.5f, 0.5f, 0.5f, //UP
-
-        -0.5f, 0.0f, 0.0f,
-         0.5f, 0.0f, 0.0f,
-        -0.5f, 0.0f, 0.5f,
-
-         0.5f, 0.0f, 0.0f,
-         0.5f, 0.0f, 0.5f,
-        -0.5f, 0.0f, 0.5f, //DOWN
-
-
-    };
-
-    memcpy(verticies,tverticies,sizeof(float)*9*12);
+    vertSize = tvert.size();
+    verticies = new float[vertSize*2];
+    int i = 0;
+    for(vec2 vert: tvert) {
+        verticies[i*2] = vert.x;
+        verticies[i*2+ 1] = vert.y;
+        ++i;
+    }
 
     initGL();
+    glClearColor(0.0f,0.0f,0.0f,1.0f);
 
 }
 
@@ -102,8 +77,8 @@ void Program::initGL() {
     glGenVertexArrays(1,&VAO);
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER,VBO);
-    glBufferData(GL_ARRAY_BUFFER,sizeof(verticies),verticies,GL_STATIC_DRAW);
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(float)*3,(void*)nullptr);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(float)*vertSize*2,verticies,GL_STATIC_DRAW);
+    glVertexAttribPointer(0,2,GL_FLOAT,GL_FALSE,sizeof(float)*2,(void*)nullptr);
     glEnableVertexAttribArray(0);
 }
 
@@ -140,34 +115,14 @@ void Program::controll() {
         glPolygonMode(GL_FRONT_AND_BACK,GL_POINT);
     }
 }
-
 void Program::draw() {
-    glClearColor(0.0f,0.0f,0.0f,1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    float matAnglex[] = {
-        1,0,0,
-        0,1,0,
-        0,0,1
-    };
     float time = glfwGetTime();
-
-    matAnglex[0] = std::cos(time);
-    matAnglex[2] = std::sin(time);
-
-
-    matAnglex[6] = -std::sin(time);
-    matAnglex[8] = std::cos(time);
-
-    int matAngleUniformx = glGetUniformLocation(shader.ID,"anglesx");
-    //int matAngleUniformz = glGetUniformLocation(shader.ID,"anglesz");
-    glUniformMatrix3fv(matAngleUniformx,1,GL_FALSE,matAnglex);
-    //glUniformMatrix3fv(matAngleUniformz,1,GL_FALSE,matAnglez);
-
     shader.use();
 
     glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES,0,36);
+    glDrawArrays(GL_TRIANGLES,0,vertSize);
 
     glfwSwapBuffers(mainWindow);
     glfwPollEvents();
