@@ -1,33 +1,34 @@
-/****************************************************************************
- Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
+/*
 
- http://www.cocos2d-x.org
+С целью документации будет представлен набор различных тестов.
+Каждый тест содержит как можно больше деталей, которые помогут быстрее вспомнить
+в будущем,а так же изучить RakNet в действии.
 
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
+На данной сцене игрокам необходимо выбрать роль: клиент,сервер или пир.Ввести
+желаемый ник,а так же ввести адрес сервера при необходимости.После чего
+необходимо выбрать желаемый тест.
 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
+На данный момент предоставляется 6 тестов:
+*Базовая репликация - демонстрируется репликация персонажа: позиции,текстуры,здоровья.
+*Репликация на основе комманд - демонстрируется репликация игроков с помощью передачи
+команд серверу.В данном подходе все решения принимает сервер.
+*Чат - игроки получают возможность подключаться к чату и свободно в нём общаться.
+Данная демонстрация не включает репликацию как таковую.
+*peer-to-peer - показывется репликация с применением указаной топологии
+*Поиск серверов в локальной сети - демонстрируется вывод всех доступных для подключения
+серверов
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- THE SOFTWARE.
- ****************************************************************************/
+
+*/
+
 
 #ifndef __HELLOWORLD_SCENE_H__
 #define __HELLOWORLD_SCENE_H__
 
 #include "cocos2d.h"
-#include <iostream>
-#include <list>
+#include "ui/UIButton.h"
+#include "ui/UITextField.h"
+#include "ui/UIScrollView.h"
 
 class HelloWorld : public cocos2d::Scene
 {
@@ -35,12 +36,13 @@ public:
     virtual bool init();
 
     static Scene* createScene();
-    // a selector callback
     void menuCloseCallback(cocos2d::Ref* pSender);
 
-
-    // implement the "static create()" method manually
     CREATE_FUNC(HelloWorld);
+
+private:
+
+
 
 };
 

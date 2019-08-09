@@ -24,10 +24,6 @@
 
 #include "HelloWorldScene.h"
 #include "SimpleAudioEngine.h"
-#include "MenuScene.h"
-#include <RakPeerInterface.h>
-
-#include <string>
 
 USING_NS_CC;
 
@@ -43,8 +39,6 @@ bool HelloWorld::init()
     if ( !Scene::init() ) {
         return false;
     }
-
-
 
     return true;
 }
