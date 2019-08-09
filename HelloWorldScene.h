@@ -26,10 +26,12 @@
 #define __HELLOWORLD_SCENE_H__
 
 #include "cocos2d.h"
+#include "Game.h"
 #include "ui/UIButton.h"
 #include "ui/UITextField.h"
 #include "ui/UIScrollView.h"
 
+#include "RakPeerInterface.h"
 
 class HelloWorld : public cocos2d::Scene
 {
@@ -41,10 +43,30 @@ public:
 
     CREATE_FUNC(HelloWorld);
 
+    void update(float delta);
 private:
+    void initUI();
+    void updateUserTypeButton();
+    void onUserTypeButtonActioned(cocos2d::Ref* ref,cocos2d::ui::Widget::TouchEventType type);
+    void onConnectButtonActioned(cocos2d::Ref* ref,cocos2d::ui::Widget::TouchEventType type);
+    void attemptConnectAsClient();
+    void attemptConnectAsServer();
+    void parseAddress(const std::string& address);
+    void changeToGameScene();
 
+    cocos2d::Size visibleSize;
 
+    cocos2d::ui::TextField* nicknameField;
+    cocos2d::ui::TextField* addressField;
+    cocos2d::ui::Button* userTypeButton;
+    cocos2d::ui::Button* connectButton;
+    USER_TYPE userType;
 
+    RakNet::RakPeerInterface* peer;
+    std::string ip;
+    unsigned int port;
+
+    bool sceneChanging;
 };
 
 #endif // __HELLOWORLD_SCENE_H__

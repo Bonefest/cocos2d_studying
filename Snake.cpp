@@ -31,3 +31,5 @@ void SnakePartReplica::Deserialize(RakNet::DeserializeParameters* parameters) {
 
     variableDeltaSerializer.EndDeserialize(&context);
 }
+
+
