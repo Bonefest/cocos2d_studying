@@ -43,6 +43,8 @@
 			<Add directory="/home/miofix/Programming/GLEW/build/src" />
 			<Add directory="/home/miofix/Programming/GLAD" />
 		</Linker>
+		<Unit filename="Program.cpp" />
+		<Unit filename="Program.h" />
 		<Unit filename="Shader.h" />
 		<Unit filename="glad.c">
 			<Option compilerVar="CC" />

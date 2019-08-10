@@ -82,7 +82,7 @@ void Program::init(Size screenSize,const char* programName,bool fullScreen) {
 
     std::list<vec3> tvert;
 
-    generateTriangles(2,tvert,vec3(-1.0f,0.0f,-1.0f),vec3(-1.0f,0.0f,1.0f),vec3(1.0f,0.0f,1.0f),vec3(1.0f,0.0f,-1.0f),vec3(0.0f,1.0f,0.0f));
+    generateTriangles(1,tvert,vec3(-1.0f,0.0f,-1.0f),vec3(-1.0f,0.0f,1.0f),vec3(1.0f,0.0f,1.0f),vec3(1.0f,0.0f,-1.0f),vec3(0.0f,1.0f,0.0f));
 
     vertSize = tvert.size();
     verticies = new float[vertSize*3];
