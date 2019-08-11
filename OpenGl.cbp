@@ -42,6 +42,7 @@
 			<Add directory="/home/miofix/Programming/GLEW/build" />
 			<Add directory="/home/miofix/Programming/GLEW/build/src" />
 			<Add directory="/home/miofix/Programming/GLAD" />
+			<Add directory="/home/miofix/Programming/GLEW/include" />
 		</Linker>
 		<Unit filename="Program.cpp" />
 		<Unit filename="Program.h" />

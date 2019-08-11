@@ -11,6 +11,7 @@
 
 #include "Shader.h"
 
+
 struct vec2 {
     float x;
     float y;
@@ -61,29 +62,20 @@ private:
     void initGLFW();
     void initGL();
     void updateWindow();
-    void setAngleX(float* mat,float degree);
-    void setAngleY(float* mat,float degree);
+    unsigned int loadTexture(const char* path,unsigned int target=GL_TEXTURE0);
 
     Shader shader;
-    unsigned VBO,VAO;
+    unsigned VBO,VAO,EBO;
+    unsigned VBO2,VAO2,EBO2;
 
     GLFWwindow* mainWindow;
     GLFWmonitor* monitor;
     Size _screenSize;
     const char* _programName;
+    unsigned int texture;
 
-    float mat[9];
-    float mat2[9];
-
-    float angleX;
-    float angleY;
-
-    std::list<vec2> tvert;
-    size_t vertSize;
     float* verticies;
+    unsigned indecies[6];
 };
-
-void generateTriangles(int depth,std::list<vec3>& verticies,vec3* previous);
-
 
 #endif // PROGRAM_H_INCLUDED
