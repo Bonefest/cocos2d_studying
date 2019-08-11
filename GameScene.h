@@ -19,7 +19,10 @@ enum GAME_MESSAGES {
     ID_CLIENT_CONNECTED_TO_ROOM = ID_USER_PACKET_ENUM+1,
     ID_ASK_FOR_NAME,
     ID_CLIENT_NAME,
-    ID_SET_TEAMCOLOR_FOR_CLIENT
+    ID_CONNECTED_USERS_DATA,
+    ID_SET_TEAMCOLOR_FOR_CLIENT,
+    ID_GET_CONNECTED_COUNT,
+    ID_GAME_START
 };
 
 class GameScene: public cocos2d::Scene {
@@ -34,20 +37,39 @@ public:
     void update(float delta);
 
 private:
-    RakNet::RakPeerInterface* peer;
-    RakNet::Packet* packet;
-
+    void prepareScene();
     void onClientInitScene();
+    void onKeyPressed(cocos2d::EventKeyboard::KeyCode key,cocos2d::Event* event);
+
+    void readPackets();
+    void updateUsersDataLabel();
+
+    void onDisconnectMessage(RakNet::Packet* packet);
+
     void askForUserName(RakNet::AddressOrGUID address);
     void sendNameTo(RakNet::AddressOrGUID address);
     void readUserName(RakNet::Packet* packet);
+
     void setTeamColorToClient(RakNet::RakNetGUID guid);
     void readTeamColor(RakNet::Packet* packet);
+
+    void sendUserdataAll();
+    void readUserdata(RakNet::Packet* packet);
+
+    void startGame();
+
+    RakNet::RakPeerInterface* peer;
+    RakNet::Packet* packet;
 
     USER_TYPE    userType;
     GAME_STATUS  status;
     TeamColor    teamColor;
     TeamColor    nextColor;
+
+    cocos2d::Size   visibleSize;
+
+    cocos2d::Label* connectedUsersDataLabel;
+
 
     std::map<RakNet::RakNetGUID,Player> players;
 

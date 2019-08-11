@@ -3,7 +3,7 @@
 
 #include "RakString.h"
 
-const int MAX_CONNECTIONS = 4;
+const int MAX_CONNECTIONS = 3;
 
 enum USER_TYPE {
     CLIENT,
