@@ -6,6 +6,8 @@
 #include "Game.h"
 #include "Snake.h"
 #include "MessageIdentifiers.h"
+#include "NetworkIDManager.h"
+#include "Replica.h"
 #include <string>
 #include <map>
 
@@ -25,6 +27,10 @@ enum GAME_MESSAGES {
     ID_GAME_START
 };
 
+class Snake;
+class ReplicaManager;
+class SnakePart;
+
 class GameScene: public cocos2d::Scene {
 public:
     virtual bool init();
@@ -34,7 +40,10 @@ public:
 
     static GameScene* create(RakNet::RakPeerInterface* peer,USER_TYPE type,std::string name);
 
+    virtual RakNet::Replica3* replicaFactory(RakNet::RakString type);
     void update(float delta);
+
+    USER_TYPE getUserType() const { return userType; }
 
 private:
     void prepareScene();
@@ -57,8 +66,11 @@ private:
     void readUserdata(RakNet::Packet* packet);
 
     void startGame();
+    void updatePlayersParts();
 
     RakNet::RakPeerInterface* peer;
+    RakNet::NetworkIDManager* networkManager;
+    ReplicaManager* replicaManager;
     RakNet::Packet* packet;
 
     USER_TYPE    userType;
@@ -72,7 +84,9 @@ private:
 
 
     std::map<RakNet::RakNetGUID,Player> players;
+    std::list<SnakePart*> playersParts;
 
+    Snake* snake;
     std::string name;
 
 };

@@ -24,7 +24,7 @@ public:
     virtual RakNet::RM3ConstructionState QueryConstruction(RakNet::Connection_RM3* connection,RakNet::ReplicaManager3* manager) { return QueryConstruction_ClientConstruction(connection,isServer()); }
     virtual bool QueryRemoteConstruction(RakNet::Connection_RM3* connection) { return QueryRemoteConstruction_ClientConstruction(connection,isServer()); }
     virtual RakNet::RM3QuerySerializationResult QuerySerialization(RakNet::Connection_RM3* connection) { return QuerySerialization_ClientSerializable(connection,isServer()); }
-    virtual RakNet::RM3ActionOnPopConnection QueryActionOnPopConnection(RakNet::Connection_RM3* connection) { return QueryActionOnPopConnection_Client(connection); }
+    virtual RakNet::RM3ActionOnPopConnection QueryActionOnPopConnection(RakNet::Connection_RM3* connection) const { return QueryActionOnPopConnection_Client(connection); }
     bool isServer() const { return type == SERVER; }
 protected:
     RakNet::VariableDeltaSerializer variableDeltaSerializer;
@@ -32,5 +32,27 @@ private:
     USER_TYPE type;
 };
 
+#include "GameScene.h"
+
+
+class GameScene;
+
+class UserConnection : public RakNet::Connection_RM3 {
+public:
+    UserConnection(const RakNet::SystemAddress& address,RakNet::RakNetGUID guid,GameScene* scene);
+    RakNet::Replica3* AllocReplica(RakNet::BitStream* stream,RakNet::ReplicaManager3* manager);
+private:
+    GameScene* _scene;
+};
+
+class ReplicaManager: public RakNet::ReplicaManager3 {
+public:
+    ReplicaManager(GameScene* scene):ReplicaManager3(),_scene(scene) { }
+
+    RakNet::Connection_RM3* AllocConnection(const RakNet::SystemAddress& address,RakNet::RakNetGUID guid) const;
+    void DeallocConnection(RakNet::Connection_RM3* connection) const;
+private:
+    GameScene* _scene;
+};
 
 #endif // REPLICA_H_INCLUDED

@@ -18,6 +18,9 @@ GameScene* GameScene::create(RakNet::RakPeerInterface* peer,USER_TYPE type,std::
 }
 
 void GameScene::onExit() {
+    delete snake;
+    delete replicaManager;
+    delete networkManager;
     RakNet::RakPeerInterface::DestroyInstance(peer);
     Scene::onExit();
     //deleting...
@@ -27,6 +30,11 @@ bool GameScene::init() {
     if(!Scene::init()) {
         return false;
     }
+    networkManager = new RakNet::NetworkIDManager();
+    replicaManager = new ReplicaManager(this);
+    peer->AttachPlugin(replicaManager);
+    replicaManager->SetNetworkIDManager(networkManager);
+
     prepareScene();
 
     if(userType == CLIENT);
@@ -35,9 +43,13 @@ bool GameScene::init() {
     auto keyListener = cocos2d::EventListenerKeyboard::create();
     keyListener->onKeyPressed = CC_CALLBACK_2(GameScene::onKeyPressed,this);
 
-    _eventDispatcher->addEventListenerWithSceneGraphPriority(keyListener);
+    _eventDispatcher->addEventListenerWithSceneGraphPriority(keyListener,this);
     scheduleUpdate();
     return true;
+}
+
+void GameScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode key,cocos2d::Event* event) {
+
 }
 
 void GameScene::prepareScene() {
@@ -55,7 +67,7 @@ void GameScene::prepareScene() {
     players[peer->GetMyGUID()].playerName = name.c_str();
     updateUsersDataLabel();
 
-    //generateSnakeHere
+    snake = new Snake(this,replicaManager,cocos2d::Vec2::ZERO,teamColor,userType);
 }
 
 void GameScene::onClientInitScene() {
@@ -68,6 +80,15 @@ void GameScene::update(float delta) {
     readPackets();
     if(players.size() == MAX_CONNECTIONS+1 && userType == SERVER && status == WAITING_FOR_PLAYERS) {
         startGame();
+    }
+    snake->update(delta);
+
+    updatePlayersParts();
+}
+
+void GameScene::updatePlayersParts() {
+    for(SnakePart* part: playersParts) {
+        part->setPosition(part->getReplica()->getPosition());
     }
 }
 
@@ -207,4 +228,19 @@ void GameScene::updateUsersDataLabel() {
     }
 
     connectedUsersDataLabel->setString(usersData);
+}
+
+
+RakNet::Replica3* GameScene::replicaFactory(RakNet::RakString type) {
+    if(type == "SnakePart") {
+        SnakePart* snakePart = SnakePart::createPart(false);
+        SnakePartReplica* replica = new SnakePartReplica(userType);
+        snakePart->setReplica(replica);
+
+        this->addChild(snakePart);
+        playersParts.push_back(snakePart);
+        return replica;
+    }
+
+    return nullptr;
 }

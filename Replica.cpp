@@ -36,3 +36,25 @@ void ClientReplicaObject::OnPoppedConnection(RakNet::Connection_RM3* connection)
     variableDeltaSerializer.RemoveRemoteSystemVariableHistory(connection->GetRakNetGUID());
 }
 
+///////////////////////////////////////////////////////////////////////////////////////
+
+
+UserConnection::UserConnection(const RakNet::SystemAddress& address,RakNet::RakNetGUID guid,GameScene* scene):Connection_RM3(address,guid),_scene(scene) { }
+
+RakNet::Replica3* UserConnection::AllocReplica(RakNet::BitStream* stream,RakNet::ReplicaManager3* manager) {
+    RakNet::RakString objectType;
+    stream->Read(objectType);
+    if(objectType == "SnakePart") {
+        return _scene->replicaFactory(objectType);
+    }
+
+    return nullptr;
+}
+
+RakNet::Connection_RM3* ReplicaManager::AllocConnection(const RakNet::SystemAddress& address,RakNet::RakNetGUID guid) const {
+    return new UserConnection(address,guid,_scene);
+}
+
+void ReplicaManager::DeallocConnection(RakNet::Connection_RM3* connection) const {
+    delete connection;
+}
