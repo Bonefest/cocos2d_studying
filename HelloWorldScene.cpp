@@ -117,6 +117,7 @@ void HelloWorld::attemptConnectAsClient() {
     RakNet::SocketDescriptor sdesc;
     peer->Startup(1,&sdesc,1);
     peer->Connect(ip.c_str(),port,0,0);
+    peer->SetMaximumIncomingConnections(1);
 }
 
 void HelloWorld::attemptConnectAsServer() {

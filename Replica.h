@@ -47,11 +47,13 @@ private:
 
 class ReplicaManager: public RakNet::ReplicaManager3 {
 public:
-    ReplicaManager(GameScene* scene):ReplicaManager3(),_scene(scene) { }
+    //ReplicaManager(GameScene* scene):ReplicaManager3(),_scene(scene) { }
+    void setScene(GameScene* scene) { _scene = scene; }
 
+private:
     RakNet::Connection_RM3* AllocConnection(const RakNet::SystemAddress& address,RakNet::RakNetGUID guid) const;
     void DeallocConnection(RakNet::Connection_RM3* connection) const;
-private:
+
     GameScene* _scene;
 };
 

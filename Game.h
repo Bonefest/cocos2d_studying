@@ -3,8 +3,15 @@
 
 #include "RakString.h"
 
-const int MAX_CONNECTIONS = 3;
-const float SNAKE_SPEED = 10.0f;
+const int MAX_CONNECTIONS = 1;
+const int MAX_APPLES = 2;
+const float SNAKE_SPEED = 32.0f;
+const float APPLE_TIMER = 2.0f;
+const float MOVE_TIMER = 2.1f;
+const unsigned int SIZE = 32;
+
+const short WIDTH = 32*25;
+const short HEIGHT = 32*24;
 
 enum USER_TYPE {
     CLIENT,

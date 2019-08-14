@@ -1,8 +1,15 @@
 #include "GameScene.h"
 #include "BitStream.h"
 #include "RakString.h"
+#include "DS_List.h"
 
 #include <iostream>
+
+unsigned int alligner(double value) {
+    return SIZE*std::round(value/float(SIZE));
+}
+
+
 GameScene* GameScene::create(RakNet::RakPeerInterface* peer,USER_TYPE type,std::string name) {
     GameScene* scene = new GameScene;
     scene->peer = peer;
@@ -18,12 +25,29 @@ GameScene* GameScene::create(RakNet::RakPeerInterface* peer,USER_TYPE type,std::
 }
 
 void GameScene::onExit() {
+    removeMyReplicas();
+
+    peer->Shutdown(30);         //Вызывать его крайне важно, т.к если мы его не вызовем -
+                                //Сервер будет ждать ответа и разорвет соединение, из-за чего
+                                //В реплике вызывается onPop, вместо уничтожения.Не будут вызываны
+                                //ни DeserializeDestruction ни DeserializeDestruction
+    RakNet::RakPeerInterface::DestroyInstance(peer);
+
     delete snake;
     delete replicaManager;
     delete networkManager;
-    RakNet::RakPeerInterface::DestroyInstance(peer);
     Scene::onExit();
     //deleting...
+}
+
+void GameScene::removeMyReplicas() {
+    DataStructures::List<RakNet::Replica3*> replicasCreatedByMe;
+    replicaManager->GetReplicasCreatedByMe(replicasCreatedByMe);
+    replicaManager->BroadcastDestructionList(replicasCreatedByMe,RakNet::UNASSIGNED_SYSTEM_ADDRESS);
+    for(unsigned int i=0;i < replicasCreatedByMe.Size();i++) {
+        RakNet::OP_DELETE(replicasCreatedByMe[i],_FILE_AND_LINE_);
+    }
+
 }
 
 bool GameScene::init() {
@@ -31,7 +55,9 @@ bool GameScene::init() {
         return false;
     }
     networkManager = new RakNet::NetworkIDManager();
-    replicaManager = new ReplicaManager(this);
+    replicaManager = new ReplicaManager;
+    replicaManager->setScene(this);
+    replicaManager->SetAutoManageConnections(true,true);
     peer->AttachPlugin(replicaManager);
     replicaManager->SetNetworkIDManager(networkManager);
 
@@ -49,6 +75,11 @@ bool GameScene::init() {
 }
 
 void GameScene::onKeyPressed(cocos2d::EventKeyboard::KeyCode key,cocos2d::Event* event) {
+    Direction currentDirection = snake->getDirection();
+    if(key == cocos2d::EventKeyboard::KeyCode::KEY_W && currentDirection != DOWN ) snake->setDirection(UP);
+    else if(key == cocos2d::EventKeyboard::KeyCode::KEY_S && currentDirection != UP   ) snake->setDirection(DOWN);
+    else if(key == cocos2d::EventKeyboard::KeyCode::KEY_A && currentDirection != RIGHT) snake->setDirection(LEFT);
+    else if(key == cocos2d::EventKeyboard::KeyCode::KEY_D && currentDirection != LEFT ) snake->setDirection(RIGHT);
 
 }
 
@@ -56,6 +87,7 @@ void GameScene::prepareScene() {
     status = WAITING_FOR_PLAYERS;
     teamColor = RED;
     nextColor = GREEN;
+    appleTimer = 0.0f;
 
     visibleSize = cocos2d::Director::getInstance()->getVisibleSize();
 
@@ -77,27 +109,78 @@ void GameScene::onClientInitScene() {
 }
 
 void GameScene::update(float delta) {
+    appleTimer += delta;
+
     readPackets();
     if(players.size() == MAX_CONNECTIONS+1 && userType == SERVER && status == WAITING_FOR_PLAYERS) {
         startGame();
     }
-    snake->update(delta);
 
-    updatePlayersParts();
+    if(status == STARTED) {
+        if(appleTimer >= APPLE_TIMER && userType == SERVER) {
+            generateApple();
+            appleTimer = 0.0f;
+        }
+
+        snake->update(delta);
+        updatePlayersParts();
+        for(auto appleIter = sceneApples.begin();appleIter != sceneApples.end();appleIter++)
+            (*appleIter)->setPosition((*appleIter)->getReplica()->getPosition());
+    }
+}
+
+void GameScene::generateApple() {
+    if(sceneApples.size() < MAX_APPLES) {
+        cocos2d::Vec2 randomPosition(alligner(cocos2d::RandomHelper::random_int(0,int(WIDTH)))-SIZE/2,alligner(cocos2d::RandomHelper::random_int(0,int(HEIGHT)))-SIZE/2);
+        Apple* apple = Apple::createApple();
+        AppleReplica* appleReplica = new AppleReplica(userType);
+        apple->setReplica(appleReplica);
+        apple->setPosition(randomPosition);
+        sceneApples.push_back(apple);
+        this->addChild(apple);
+        replicaManager->Reference(appleReplica);
+    }
 }
 
 void GameScene::updatePlayersParts() {
-    for(SnakePart* part: playersParts) {
-        part->setPosition(part->getReplica()->getPosition());
+    for(auto snakePartIter = playersParts.begin();snakePartIter != playersParts.end();){
+        if((*snakePartIter)->getReplica()->deletingSystemGUID != RakNet::UNASSIGNED_RAKNET_GUID) {
+            this->removeChild(*snakePartIter);
+            snakePartIter = playersParts.erase(snakePartIter);
+            continue;
+        }
+
+        (*snakePartIter)->setPosition((*snakePartIter)->getReplica()->getPosition());
+        snakePartIter++;
     }
 }
 
 void GameScene::startGame() {
     status = STARTED;
 
-    RakNet::BitStream streamOut;
-    streamOut.Write((RakNet::MessageID)ID_GAME_START);
-    peer->Send(&streamOut,HIGH_PRIORITY,RELIABLE,0,RakNet::UNASSIGNED_SYSTEM_ADDRESS,false);
+
+    initPlayersSnakes();
+}
+
+
+void GameScene::initPlayersSnakes() {
+    snake->setPosition(cocos2d::Vec2(SIZE/2,SIZE/2));
+    snake->setDirection(RIGHT);
+
+    RakNet::SystemAddress connectedUsers[MAX_CONNECTIONS];
+    unsigned short connectedUsersCount = MAX_CONNECTIONS;
+    peer->GetConnectionList(connectedUsers,&connectedUsersCount);
+    std::cout << connectedUsersCount << std::endl;
+    for(unsigned short i = 0;i<connectedUsersCount;++i) {
+        RakNet::BitStream streamOut;
+        streamOut.Write((RakNet::MessageID)ID_GAME_START);
+        streamOut.Write( ((i+2)%2 == 0)?LEFT:RIGHT);
+        streamOut.Write( ((i+2)%2 == 0)?WIDTH-SIZE/2:SIZE/2 );
+        streamOut.Write( ((i+2)<=2)?SIZE/2:HEIGHT-SIZE/2);
+        peer->Send(&streamOut,HIGH_PRIORITY,RELIABLE,0,connectedUsers[i],false);
+
+    }
+
 }
 
 void GameScene::readPackets() {
@@ -132,9 +215,27 @@ void GameScene::readPackets() {
             readUserdata(packet);
             updateUsersDataLabel();
             break;
-
+        case ID_GAME_START:
+            onGameStartedMessage(packet);
+            break;
         }
     }
+}
+
+void GameScene::onGameStartedMessage(RakNet::Packet* packet) {
+    status = STARTED;
+
+    int posX,posY;
+    Direction direction;
+    RakNet::BitStream streamIn(packet->data,packet->length,false);
+    streamIn.IgnoreBytes(sizeof(RakNet::MessageID));
+
+    streamIn.Read(direction);
+    streamIn.Read(posX);
+    streamIn.Read(posY);
+
+    snake->setDirection(direction);
+    snake->setPosition(cocos2d::Vec2(posX,posY));
 }
 
 void GameScene::onDisconnectMessage(RakNet::Packet* packet) {
@@ -143,11 +244,15 @@ void GameScene::onDisconnectMessage(RakNet::Packet* packet) {
             players.erase(packet->guid);
             sendUserdataAll();
             updateUsersDataLabel();
+
+            DataStructures::List<RakNet::Replica3*> replicasCreatedBy;
+            replicaManager->GetReplicasCreatedByGuid(packet->guid,replicasCreatedBy);
+            replicaManager->BroadcastDestructionList(replicasCreatedBy,RakNet::UNASSIGNED_SYSTEM_ADDRESS);
+
             break;
         }
-        case CLIENT: {
+        case CLIENT:
             break;
-        }
     }
 }
 
@@ -239,6 +344,14 @@ RakNet::Replica3* GameScene::replicaFactory(RakNet::RakString type) {
 
         this->addChild(snakePart);
         playersParts.push_back(snakePart);
+        return replica;
+    } else if( type == "Apple") {
+        Apple* apple = Apple::createApple();
+        AppleReplica* replica = new AppleReplica(userType);
+        apple->setReplica(replica);
+        this->addChild(apple);
+        sceneApples.push_back(apple);
+
         return replica;
     }
 

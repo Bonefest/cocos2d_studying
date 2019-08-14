@@ -30,6 +30,7 @@ enum GAME_MESSAGES {
 class Snake;
 class ReplicaManager;
 class SnakePart;
+class Apple;
 
 class GameScene: public cocos2d::Scene {
 public:
@@ -54,6 +55,7 @@ private:
     void updateUsersDataLabel();
 
     void onDisconnectMessage(RakNet::Packet* packet);
+    void onGameStartedMessage(RakNet::Packet* packet);
 
     void askForUserName(RakNet::AddressOrGUID address);
     void sendNameTo(RakNet::AddressOrGUID address);
@@ -66,7 +68,10 @@ private:
     void readUserdata(RakNet::Packet* packet);
 
     void startGame();
+    void initPlayersSnakes();
     void updatePlayersParts();
+    void generateApple();
+    void removeMyReplicas();
 
     RakNet::RakPeerInterface* peer;
     RakNet::NetworkIDManager* networkManager;
@@ -85,6 +90,9 @@ private:
 
     std::map<RakNet::RakNetGUID,Player> players;
     std::list<SnakePart*> playersParts;
+
+    std::list<Apple*> sceneApples;
+    float appleTimer;
 
     Snake* snake;
     std::string name;

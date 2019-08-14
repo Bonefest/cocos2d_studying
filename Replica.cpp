@@ -1,6 +1,7 @@
 #include "Replica.h"
 #include "RakPeerInterface.h"
 #include "GetTime.h"
+#include <iostream>
 
 ClientReplicaObject::ClientReplicaObject(USER_TYPE tpe):type(tpe) { }
 
@@ -33,6 +34,7 @@ void ClientReplicaObject::OnUserReplicaPreSerializeTick() {
 }
 
 void ClientReplicaObject::OnPoppedConnection(RakNet::Connection_RM3* connection) {
+    std::cout << "me?\n";
     variableDeltaSerializer.RemoveRemoteSystemVariableHistory(connection->GetRakNetGUID());
 }
 
@@ -44,11 +46,8 @@ UserConnection::UserConnection(const RakNet::SystemAddress& address,RakNet::RakN
 RakNet::Replica3* UserConnection::AllocReplica(RakNet::BitStream* stream,RakNet::ReplicaManager3* manager) {
     RakNet::RakString objectType;
     stream->Read(objectType);
-    if(objectType == "SnakePart") {
-        return _scene->replicaFactory(objectType);
-    }
 
-    return nullptr;
+    return _scene->replicaFactory(objectType);
 }
 
 RakNet::Connection_RM3* ReplicaManager::AllocConnection(const RakNet::SystemAddress& address,RakNet::RakNetGUID guid) const {
