@@ -47,6 +47,7 @@ private:
 class Snake {
 public:
     Snake(cocos2d::Scene* scene,RakNet::ReplicaManager3* manager,cocos2d::Vec2 startPosition,TeamColor color,USER_TYPE type);
+    ~Snake() { removeFromScene(); }
 
     cocos2d::Vec2 getPosition() { return head->getReplica()->getPosition(); }
 
@@ -58,6 +59,9 @@ public:
     void setPosition(const cocos2d::Vec2& vec) { head->setPosition(vec); }
     void update(float delta);
 
+    bool isIntersectsWith(const cocos2d::Rect& rect) const { return head->getBoundingBox().intersectsRect(rect); }
+    bool isIntersectsSelf();
+    void removeFromScene();
     //cocos2d::Vec2 getHeadPosition();
 private:
     cocos2d::Vec2 getNextPosition() const;

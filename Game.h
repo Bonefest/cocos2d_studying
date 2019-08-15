@@ -3,11 +3,11 @@
 
 #include "RakString.h"
 
-const int MAX_CONNECTIONS = 1;
+const int MAX_CONNECTIONS = 2;
 const int MAX_APPLES = 2;
 const float SNAKE_SPEED = 32.0f;
 const float APPLE_TIMER = 2.0f;
-const float MOVE_TIMER = 2.1f;
+const float MOVE_TIMER = 0.5f;
 const unsigned int SIZE = 32;
 
 const short WIDTH = 32*25;

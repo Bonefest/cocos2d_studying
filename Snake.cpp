@@ -2,6 +2,7 @@
 #include "RakPeerInterface.h"
 #include "GetTime.h"
 #include <iostream>
+#include "DS_List.h"
 SnakePartReplica::SnakePartReplica(USER_TYPE type):ClientReplicaObject(type) { }
 
 RakNet::RM3SerializationResult SnakePartReplica::Serialize(RakNet::SerializeParameters* parameters) {
@@ -87,10 +88,8 @@ Apple* Apple::createApple() {
 Snake::Snake(cocos2d::Scene* scene,RakNet::ReplicaManager3* manager,cocos2d::Vec2 startPosition,TeamColor color,USER_TYPE type):_scene(scene),_manager(manager),_color(color),_type(type),updateTimer(0.0f) {
     addPart(true);
     head = *parts.begin();
-    head->setPosition(cocos2d::Vec2(100,100));
+    head->setPosition(cocos2d::Vec2(-SIZE*3,-SIZE*3));
     setDirection(RIGHT);
-    for(int i = 0;i<5;++i)
-        addPart(false);
 }
 
 void Snake::addPart(bool head) {
@@ -131,5 +130,32 @@ cocos2d::Vec2 Snake::getNextPosition() const {
     }
 
     return cocos2d::Vec2::ZERO;
+}
+
+
+bool Snake::isIntersectsSelf() {
+    cocos2d::Rect partRect;
+    for(auto partIter = (++parts.begin());partIter != parts.end();partIter++) {
+        partRect = (*partIter)->getBoundingBox();
+        partRect.size.width -= 2;
+        partRect.size.height -= 2;
+        partRect.origin.add(cocos2d::Vec2(1,1));
+
+        if(isIntersectsWith(partRect)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void Snake::removeFromScene() {
+    DataStructures::List<RakNet::Replica3*> myReplicas;
+    _manager->GetReplicasCreatedByMe(myReplicas);
+    _manager->BroadcastDestructionList(myReplicas,RakNet::UNASSIGNED_SYSTEM_ADDRESS);
+    for(auto partIter = parts.begin();partIter != parts.end();partIter++) {
+        RakNet::OP_DELETE((*partIter)->getReplica(),_FILE_AND_LINE_);
+        _scene->removeChild(*partIter);
+    }
 }
 

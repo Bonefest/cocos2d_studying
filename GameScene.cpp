@@ -25,29 +25,21 @@ GameScene* GameScene::create(RakNet::RakPeerInterface* peer,USER_TYPE type,std::
 }
 
 void GameScene::onExit() {
-    removeMyReplicas();
 
-    peer->Shutdown(30);         //Вызывать его крайне важно, т.к если мы его не вызовем -
+
+    delete snake;
+    peer->Shutdown(300);         //Вызывать его крайне важно, т.к если мы его не вызовем -
                                 //Сервер будет ждать ответа и разорвет соединение, из-за чего
                                 //В реплике вызывается onPop, вместо уничтожения.Не будут вызываны
                                 //ни DeserializeDestruction ни DeserializeDestruction
+
+
     RakNet::RakPeerInterface::DestroyInstance(peer);
 
-    delete snake;
     delete replicaManager;
     delete networkManager;
     Scene::onExit();
     //deleting...
-}
-
-void GameScene::removeMyReplicas() {
-    DataStructures::List<RakNet::Replica3*> replicasCreatedByMe;
-    replicaManager->GetReplicasCreatedByMe(replicasCreatedByMe);
-    replicaManager->BroadcastDestructionList(replicasCreatedByMe,RakNet::UNASSIGNED_SYSTEM_ADDRESS);
-    for(unsigned int i=0;i < replicasCreatedByMe.Size();i++) {
-        RakNet::OP_DELETE(replicasCreatedByMe[i],_FILE_AND_LINE_);
-    }
-
 }
 
 bool GameScene::init() {
@@ -116,16 +108,76 @@ void GameScene::update(float delta) {
         startGame();
     }
 
-    if(status == STARTED) {
+    if(status != WAITING_FOR_PLAYERS) {
         if(appleTimer >= APPLE_TIMER && userType == SERVER) {
             generateApple();
             appleTimer = 0.0f;
         }
 
-        snake->update(delta);
+        if(status == STARTED) {
+            snake->update(delta);
+            checkCollision();
+        }
+
+        updateApplesPositions();
         updatePlayersParts();
-        for(auto appleIter = sceneApples.begin();appleIter != sceneApples.end();appleIter++)
-            (*appleIter)->setPosition((*appleIter)->getReplica()->getPosition());
+
+
+    }
+}
+
+void GameScene::updateApplesPositions() {
+    for(auto appleIter = sceneApples.begin();appleIter != sceneApples.end();) {
+        //Если у реплики установлен guid удаляющего, значит он удалён - убираем со сцены и списка
+        if((*appleIter)->getReplica()->deletingSystemGUID != RakNet::UNASSIGNED_RAKNET_GUID) {
+            this->removeChild(*appleIter);
+            appleIter = sceneApples.erase(appleIter);
+            continue;
+        }
+        (*appleIter)->setPosition((*appleIter)->getReplica()->getPosition());
+        appleIter++;
+    }
+
+}
+
+void GameScene::checkCollision() {
+    if(snake->isIntersectsSelf()) {
+        snake->removeFromScene();
+        status = FINISHED;
+        return;
+    }
+
+    cocos2d::Rect objectRect;
+    for(auto partsIter = playersParts.begin();partsIter != playersParts.end();partsIter++) {
+        objectRect = (*partsIter)->getBoundingBox();
+        objectRect.size.width -= 2;
+        objectRect.size.height -= 2;
+        objectRect.origin.add(cocos2d::Vec2(1,1));
+        if(snake->isIntersectsWith(objectRect)) {
+                std::cout << snake->getPosition().x << " " << snake->getPosition().y << " " << objectRect.origin.x << " " << objectRect.origin.y << std::endl;
+            snake->removeFromScene();
+            status = FINISHED;
+            return;
+        }
+    }
+
+    for(auto appleIter = sceneApples.begin();appleIter != sceneApples.end();appleIter++) {
+        cocos2d::Rect rect = (*appleIter)->getBoundingBox();
+
+        rect.size.width -= 2;           //Уменьшаем размер и смещаем левый нижний угол на
+        rect.size.height -= 2;          //Половину уменьшенего размера - это защитит
+        rect.origin.x += 1;             //от столкновений, когда змея рядом,а не в клетке
+        rect.origin.y += 1;             //(без этого,она будет сталкиваться, когда будет
+                                        //даже вокруг еды т.к будет пересекаться самый крайний пиксель)
+
+        if(snake->isIntersectsWith(rect)) {
+            replicaManager->BroadcastDestruction((*appleIter)->getReplica(),RakNet::UNASSIGNED_SYSTEM_ADDRESS);
+            RakNet::OP_DELETE((*appleIter)->getReplica(),_FILE_AND_LINE_);
+            sceneApples.erase(appleIter);
+            this->removeChild(*appleIter);
+            snake->addPart();
+            break;
+        }
     }
 }
 
@@ -341,6 +393,7 @@ RakNet::Replica3* GameScene::replicaFactory(RakNet::RakString type) {
         SnakePart* snakePart = SnakePart::createPart(false);
         SnakePartReplica* replica = new SnakePartReplica(userType);
         snakePart->setReplica(replica);
+        snakePart->setPosition(cocos2d::Vec2(-SIZE*3,-SIZE*3));
 
         this->addChild(snakePart);
         playersParts.push_back(snakePart);

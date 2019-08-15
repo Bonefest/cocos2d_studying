@@ -70,8 +70,10 @@ private:
     void startGame();
     void initPlayersSnakes();
     void updatePlayersParts();
+    void updateApplesPositions();
     void generateApple();
-    void removeMyReplicas();
+
+    void checkCollision();
 
     RakNet::RakPeerInterface* peer;
     RakNet::NetworkIDManager* networkManager;
