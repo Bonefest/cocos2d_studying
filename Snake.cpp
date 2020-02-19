@@ -3,7 +3,7 @@
 #include "GetTime.h"
 #include <iostream>
 #include "DS_List.h"
-SnakePartReplica::SnakePartReplica(USER_TYPE type):ClientReplicaObject(type) { }
+SnakePartReplica::SnakePartReplica(USER_TYPE type):ClientReplicaObject(type),head(false) { }
 
 RakNet::RM3SerializationResult SnakePartReplica::Serialize(RakNet::SerializeParameters* parameters) {
     RakNet::VariableDeltaSerializer::SerializationContext context;
@@ -17,6 +17,7 @@ RakNet::RM3SerializationResult SnakePartReplica::Serialize(RakNet::SerializePara
     //std::cout << position.x << " " << position.y << std::endl;
     variableDeltaSerializer.SerializeVariable(&context,direction);
     variableDeltaSerializer.SerializeVariable(&context,color);
+    variableDeltaSerializer.SerializeVariable(&context,head);
     variableDeltaSerializer.EndSerialize(&context);
 
     return RakNet::RM3SR_SERIALIZED_ALWAYS;
@@ -30,6 +31,7 @@ void SnakePartReplica::Deserialize(RakNet::DeserializeParameters* parameters) {
     variableDeltaSerializer.DeserializeVariable(&context,position.y);
     variableDeltaSerializer.DeserializeVariable(&context,direction);
     variableDeltaSerializer.DeserializeVariable(&context,color);
+    variableDeltaSerializer.DeserializeVariable(&context,head);
     //std::cout << position.x << " " << position.y << std::endl;
     variableDeltaSerializer.EndDeserialize(&context);
 }
@@ -64,9 +66,10 @@ void AppleReplica::Deserialize(RakNet::DeserializeParameters* parameters) {
 
 SnakePart* SnakePart::createPart(bool head) {
     SnakePart* part = new SnakePart;
-    if(part->initWithFile("brick.png")) {
+    const char* file = ((head)?"box.png":"brick.png");
+    if(part->initWithFile(file)) {
         part->autorelease();
-        part->head = head;
+        part->setContentSize(cocos2d::Size(SIZE,SIZE));
         return part;
     }
     CC_SAFE_DELETE(part);
@@ -77,6 +80,7 @@ Apple* Apple::createApple() {
     Apple* apple = new Apple;
     if(apple->initWithFile("brick.png")) {
         apple->autorelease();
+        apple->setContentSize(cocos2d::Size(SIZE,SIZE));
         return apple;
     }
     CC_SAFE_DELETE(apple);
@@ -89,6 +93,7 @@ Snake::Snake(cocos2d::Scene* scene,RakNet::ReplicaManager3* manager,cocos2d::Vec
     addPart(true);
     head = *parts.begin();
     head->setPosition(cocos2d::Vec2(-SIZE*3,-SIZE*3));
+    head->setHead(true);
     setDirection(RIGHT);
 }
 
@@ -98,6 +103,7 @@ void Snake::addPart(bool head) {
     parts.push_back(part);
     SnakePartReplica* partReplica = new SnakePartReplica(_type);
     part->setReplica(partReplica);
+    part->setHead(false);
     _manager->Reference(partReplica);
     _scene->addChild(part);
 
@@ -108,7 +114,7 @@ void Snake::update(float delta) {
     if(updateTimer > MOVE_TIMER) {
         Direction prevDirection;
         cocos2d::Vec2 previousPartPosition = head->getPosition();
-        head->setPosition(previousPartPosition + getNextPosition());
+        warpAndSetPosition(previousPartPosition + getNextPosition());
 
         for(auto partIter = (++parts.begin());partIter != parts.end();partIter++) {
             cocos2d::Vec2 tempPosition = (*partIter)->getPosition();
@@ -132,6 +138,15 @@ cocos2d::Vec2 Snake::getNextPosition() const {
     return cocos2d::Vec2::ZERO;
 }
 
+void Snake::warpAndSetPosition(cocos2d::Vec2 snakePosition) {
+    cocos2d::Size visibleSize = cocos2d::Director::getInstance()->getVisibleSize();
+    if(snakePosition.x < 0) snakePosition.x = WIDTH-SIZE/2;
+    else if(snakePosition.x > WIDTH) snakePosition.x = SIZE/2;
+
+    if(snakePosition.y < 0) snakePosition.y = HEIGHT-SIZE/2;
+    else if(snakePosition.y > HEIGHT) snakePosition.y = SIZE/2;
+    head->setPosition(snakePosition);
+}
 
 bool Snake::isIntersectsSelf() {
     cocos2d::Rect partRect;
@@ -150,10 +165,8 @@ bool Snake::isIntersectsSelf() {
 }
 
 void Snake::removeFromScene() {
-    DataStructures::List<RakNet::Replica3*> myReplicas;
-    _manager->GetReplicasCreatedByMe(myReplicas);
-    _manager->BroadcastDestructionList(myReplicas,RakNet::UNASSIGNED_SYSTEM_ADDRESS);
     for(auto partIter = parts.begin();partIter != parts.end();partIter++) {
+        _manager->BroadcastDestruction((*partIter)->getReplica(),RakNet::UNASSIGNED_SYSTEM_ADDRESS);
         RakNet::OP_DELETE((*partIter)->getReplica(),_FILE_AND_LINE_);
         _scene->removeChild(*partIter);
     }

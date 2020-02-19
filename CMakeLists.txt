@@ -55,10 +55,17 @@ endif()
 list(APPEND GAME_SOURCE
      Classes/AppDelegate.cpp
      Classes/HelloWorldScene.cpp
+     Classes/Snake.cpp
+     Classes/Replica.cpp
+     Classes/GameScene.cpp
      )
 list(APPEND GAME_HEADER
      Classes/AppDelegate.h
      Classes/HelloWorldScene.h
+     Classes/Snake.h
+     Classes/Replica.h
+     Classes/Game.h
+     Classes/GameScene.h
      )
 
 if(ANDROID)

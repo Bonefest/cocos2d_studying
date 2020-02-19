@@ -83,12 +83,26 @@ void GameScene::prepareScene() {
 
     visibleSize = cocos2d::Director::getInstance()->getVisibleSize();
 
-    connectedUsersDataLabel = cocos2d::Label::create("Label","fonts/arial.ttf",32);
-    connectedUsersDataLabel->setPosition(7*visibleSize.width/10,9*visibleSize.height/10);
+    connectedUsersDataLabel = cocos2d::Label::createWithTTF("Label","fonts/arial.ttf",32);
+    connectedUsersDataLabel->setPosition(WIDTH,9*visibleSize.height/10);
     connectedUsersDataLabel->setAnchorPoint(cocos2d::Vec2(0.0f,1.0f));
     this->addChild(connectedUsersDataLabel);
 
+    scoreLabel = cocos2d::Label::createWithTTF("Score: 1","fonts/arial.ttf",32);
+    scoreLabel->setPosition(WIDTH,6*visibleSize.height/10);
+    scoreLabel->setAnchorPoint(cocos2d::Vec2(0.0f,1.0f));
+    this->addChild(scoreLabel);
+
+    messageLabel = cocos2d::Label::createWithTTF("","fonts/arial.ttf",64);
+    messageLabel->setPosition(WIDTH/2,HEIGHT/2);
+    this->addChild(messageLabel);
+
+    borderRectNode = cocos2d::DrawNode::create(1.0f);
+    borderRectNode->drawRect(cocos2d::Vec2(1,0),cocos2d::Vec2(WIDTH,HEIGHT-1),cocos2d::Color4F::RED);
+    this->addChild(borderRectNode);
+
     players[peer->GetMyGUID()].playerName = name.c_str();
+    players[peer->GetMyGUID()].status = FINISHED;
     updateUsersDataLabel();
 
     snake = new Snake(this,replicaManager,cocos2d::Vec2::ZERO,teamColor,userType);
@@ -101,6 +115,8 @@ void GameScene::onClientInitScene() {
 }
 
 void GameScene::update(float delta) {
+    if(userType == SERVER) tryNotifyWinner();
+
     appleTimer += delta;
 
     readPackets();
@@ -117,12 +133,35 @@ void GameScene::update(float delta) {
         if(status == STARTED) {
             snake->update(delta);
             checkCollision();
+            updatePlayersParts();
         }
 
         updateApplesPositions();
-        updatePlayersParts();
 
 
+    }
+}
+
+void GameScene::tryNotifyWinner() {
+    size_t loserCount = 0;
+    Player lastStarted;
+    RakNet::RakNetGUID guid;
+
+    for(auto playerIter = players.begin();playerIter != players.end();playerIter++) {
+        if(playerIter->second.status == FINISHED) loserCount++;
+        else if(playerIter->second.status == STARTED) {
+            lastStarted = playerIter->second;
+            guid = playerIter->first;
+        }
+    }
+
+    if(loserCount == MAX_CONNECTIONS) {
+        RakNet::RakString message((std::string("Winner ") + lastStarted.playerName.C_String()).c_str());
+        RakNet::BitStream streamOut;
+        streamOut.Write((RakNet::MessageID)ID_WINNER);
+        streamOut.Write(message);
+        peer->Send(&streamOut,HIGH_PRIORITY,RELIABLE,0,RakNet::UNASSIGNED_SYSTEM_ADDRESS,true);
+        updateMessageLabel(message.C_String());
     }
 }
 
@@ -144,6 +183,7 @@ void GameScene::checkCollision() {
     if(snake->isIntersectsSelf()) {
         snake->removeFromScene();
         status = FINISHED;
+        if(userType == CLIENT) sendStatusToServer();
         return;
     }
 
@@ -154,9 +194,9 @@ void GameScene::checkCollision() {
         objectRect.size.height -= 2;
         objectRect.origin.add(cocos2d::Vec2(1,1));
         if(snake->isIntersectsWith(objectRect)) {
-                std::cout << snake->getPosition().x << " " << snake->getPosition().y << " " << objectRect.origin.x << " " << objectRect.origin.y << std::endl;
             snake->removeFromScene();
             status = FINISHED;
+            if(userType == CLIENT) sendStatusToServer();
             return;
         }
     }
@@ -176,9 +216,21 @@ void GameScene::checkCollision() {
             sceneApples.erase(appleIter);
             this->removeChild(*appleIter);
             snake->addPart();
+            updateScoreLabel();
             break;
         }
     }
+}
+
+void GameScene::sendStatusToServer() {
+    RakNet::BitStream streamOut;
+    streamOut.Write((RakNet::MessageID)ID_CLIENT_STATUS);
+    streamOut.Write(status);
+    peer->Send(&streamOut,HIGH_PRIORITY,RELIABLE,0,RakNet::UNASSIGNED_SYSTEM_ADDRESS,true);
+}
+
+void GameScene::updateScoreLabel() {
+    scoreLabel->setString(std::string("Score: ") + std::to_string(snake->getSnakeLength()));
 }
 
 void GameScene::generateApple() {
@@ -203,6 +255,10 @@ void GameScene::updatePlayersParts() {
         }
 
         (*snakePartIter)->setPosition((*snakePartIter)->getReplica()->getPosition());
+        if( (*snakePartIter)->isHead()) {
+            (*snakePartIter)->setTexture("box.png");
+            (*snakePartIter)->setContentSize(cocos2d::Size(SIZE,SIZE));
+        }
         snakePartIter++;
     }
 }
@@ -255,6 +311,9 @@ void GameScene::readPackets() {
             sendUserdataAll();
             updateUsersDataLabel();
             break;
+        case ID_CLIENT_STATUS:
+            readClientStatus(packet);
+            break;
 
         //CLIENT MESSAGES
         case ID_ASK_FOR_NAME:
@@ -270,8 +329,30 @@ void GameScene::readPackets() {
         case ID_GAME_START:
             onGameStartedMessage(packet);
             break;
+        case ID_WINNER:
+            readWinner(packet);
+            break;
         }
     }
+}
+
+void GameScene::readWinner(RakNet::Packet* packet) {
+    RakNet::BitStream streamIn(packet->data,packet->length,false);
+    streamIn.IgnoreBytes(sizeof(RakNet::MessageID));
+    RakNet::RakString message;
+    streamIn.Read(message);
+    updateMessageLabel(message.C_String());
+}
+
+void GameScene::updateMessageLabel(std::string message) {
+    messageLabel->setString(message);
+}
+
+void GameScene::readClientStatus(RakNet::Packet* packet) {
+    RakNet::BitStream streamIn(packet->data,packet->length,false);
+    streamIn.IgnoreBytes(sizeof(RakNet::MessageID));
+    streamIn.Read(players[packet->guid].status);
+    std::cout << "Message!\n" << std::endl;
 }
 
 void GameScene::onGameStartedMessage(RakNet::Packet* packet) {
@@ -320,6 +401,7 @@ void GameScene::readUserName(RakNet::Packet* packet) {
     streamIn.IgnoreBytes(sizeof(RakNet::MessageID));
     streamIn.Read(userName);
     players[packet->guid].playerName = userName;
+    players[packet->guid].status = STARTED;
 }
 
 void GameScene::sendNameTo(RakNet::AddressOrGUID address) {

@@ -11,12 +11,6 @@
 #include <string>
 #include <map>
 
-enum GAME_STATUS {
-    WAITING_FOR_PLAYERS,
-    STARTED,
-    FINISHED
-};
-
 enum GAME_MESSAGES {
     ID_CLIENT_CONNECTED_TO_ROOM = ID_USER_PACKET_ENUM+1,
     ID_ASK_FOR_NAME,
@@ -24,7 +18,9 @@ enum GAME_MESSAGES {
     ID_CONNECTED_USERS_DATA,
     ID_SET_TEAMCOLOR_FOR_CLIENT,
     ID_GET_CONNECTED_COUNT,
-    ID_GAME_START
+    ID_GAME_START,
+    ID_CLIENT_STATUS,
+    ID_WINNER
 };
 
 class Snake;
@@ -67,13 +63,21 @@ private:
     void sendUserdataAll();
     void readUserdata(RakNet::Packet* packet);
 
+    void sendStatusToServer();
+    void readClientStatus(RakNet::Packet* packet);
+
+    void readWinner(RakNet::Packet* packet);
+
     void startGame();
     void initPlayersSnakes();
     void updatePlayersParts();
     void updateApplesPositions();
+    void updateScoreLabel();
+    void updateMessageLabel(std::string message);
     void generateApple();
 
     void checkCollision();
+    void tryNotifyWinner();
 
     RakNet::RakPeerInterface* peer;
     RakNet::NetworkIDManager* networkManager;
@@ -88,7 +92,10 @@ private:
     cocos2d::Size   visibleSize;
 
     cocos2d::Label* connectedUsersDataLabel;
+    cocos2d::Label* scoreLabel;
+    cocos2d::Label* messageLabel;
 
+    cocos2d::DrawNode* borderRectNode;
 
     std::map<RakNet::RakNetGUID,Player> players;
     std::list<SnakePart*> playersParts;

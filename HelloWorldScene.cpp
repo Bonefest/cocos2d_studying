@@ -93,11 +93,11 @@ void HelloWorld::onUserTypeButtonActioned(cocos2d::Ref* ref,cocos2d::ui::Widget:
 
 void HelloWorld::onConnectButtonActioned(cocos2d::Ref* ref,cocos2d::ui::Widget::TouchEventType type) {
     if(type == cocos2d::ui::Widget::TouchEventType::BEGAN) {
-        if(nicknameField->getString() != "") {
-            parseAddress(addressField->getString());
-            if(userType == CLIENT) attemptConnectAsClient();
-            else if(userType == SERVER) attemptConnectAsServer();
-        }
+        if(nicknameField->getString().empty())
+            nicknameField->setString(std::string("User") + peer->GetMyGUID().ToString());
+        parseAddress(addressField->getString());
+        if(userType == CLIENT) attemptConnectAsClient();
+        else if(userType == SERVER) attemptConnectAsServer();
     }
 }
 

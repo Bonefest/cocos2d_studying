@@ -20,8 +20,12 @@ public:
     Direction getDirection() { return direction; }
     void setPosition(cocos2d::Vec2 position) { this->position = position; }
     cocos2d::Vec2 getPosition() const { return position; }
+
+    bool isHead() const { return head; }
+    bool setHead(bool head) { this->head = head; }
 private:
     USER_TYPE type;
+    bool head;
     Direction direction;
     cocos2d::Vec2 position;
     TeamColor color;
@@ -38,10 +42,10 @@ public:
 
     void setDirection(Direction direction) { replica.GetCompositeOwner()->setDirection(direction); }
     Direction getDirection() { replica.GetCompositeOwner()->getDirection(); }
-    bool isHead() const { return head; }
+    bool isHead() { return getReplica()->isHead(); }
+    bool setHead(bool head) { getReplica()->setHead(head); }
 private:
     RakNet::Replica3Composite<SnakePartReplica> replica;
-    bool head;
 };
 
 class Snake {
@@ -62,9 +66,12 @@ public:
     bool isIntersectsWith(const cocos2d::Rect& rect) const { return head->getBoundingBox().intersectsRect(rect); }
     bool isIntersectsSelf();
     void removeFromScene();
+
+    size_t getSnakeLength() const { return parts.size(); }
     //cocos2d::Vec2 getHeadPosition();
 private:
     cocos2d::Vec2 getNextPosition() const;
+    void warpAndSetPosition(cocos2d::Vec2 position);
 
     RakNet::ReplicaManager3* _manager;
     cocos2d::Scene* _scene;
